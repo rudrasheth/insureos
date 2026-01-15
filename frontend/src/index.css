@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-serif: "Playfair Display", serif;
+
+  /* Palette: Humanist Editorial (Warm, Organic, High-Quality) */
+  --color-canvas: #fdfcf8;
+  /* Warm Paper White */
+  --color-surface: #ffffff;
+  --color-surface-hover: #f7f5f0;
+
+  --color-line: #e2e0d8;
+  /* Warm Grey Border */
+  --color-line-strong: #1a1a1a;
+
+  --color-ink-900: #1a1a1a;
+  /* Soft Black */
+  --color-ink-500: #5c5b57;
+  /* Warm Grey Text */
+  --color-ink-300: #a3a29e;
+
+  --color-accent: #c2410c;
+  /* Terracotta / Burnt Orange - Human & Earthy */
+  --color-accent-subtle: #ffedd5;
+}
+
+body {
+  @apply bg-canvas text-ink-900 font-sans antialiased;
+}
+
+/* --- The "Humanist" Design System --- */
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  @apply tracking-tight font-semibold text-ink-900;
+}
+
+/* Buttons: Elegant, precise */
+.btn-primary {
+  @apply inline-flex items-center justify-center px-6 py-3 bg-ink-900 text-white text-sm font-medium tracking-wide rounded-sm shadow-sm hover:bg-accent hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-6 py-3 bg-transparent text-ink-900 text-sm font-medium tracking-wide border border-line-strong rounded-sm hover:bg-ink-900 hover:text-white transition-all duration-300 cursor-pointer;
+}
+
+/* Inputs: Minimalist, like a line on paper */
+.input-field {
+  @apply block w-full bg-transparent border-b border-line px-0 py-3 text-ink-900 font-medium text-lg placeholder:text-ink-300 placeholder:font-serif placeholder:italic focus:border-accent focus:outline-none transition-colors duration-200 rounded-none;
+}
+
+/* Cards: Paper-like, elegant borders */
+.card-base {
+  @apply bg-white border border-line rounded-sm p-8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-ink-300/50 rounded-full;
+}
