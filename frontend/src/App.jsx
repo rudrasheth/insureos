@@ -7,14 +7,26 @@ import AddPolicy from './pages/AddPolicy';
 import PolicySearch from './pages/PolicySearch';
 import Analytics from './pages/Analytics';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+
+import RequireAuth from './components/RequireAuth';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-        <Route path="/" element={<Layout />}>
+        <Route path="/" element={
+          <RequireAuth>
+            <Layout />
+          </RequireAuth>
+        }>
           <Route index element={<CustomerList />} />
           <Route path="add-customer" element={<AddCustomer />} />
           <Route path="add-policy" element={<AddPolicy />} />

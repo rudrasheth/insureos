@@ -1,8 +1,19 @@
 const express = require('express');
 const { getCustomers, createCustomer } = require('../controllers/customerController');
 const { createPolicy, getPoliciesByCustomer, searchPolicies } = require('../controllers/policyController');
+const { register, login, forgotPassword, resetPassword } = require('../controllers/authController');
+const authenticateToken = require('../middleware/authMiddleware');
 
 const router = express.Router();
+
+// Public Routes
+router.post('/auth/register', register);
+router.post('/auth/login', login);
+router.post('/auth/forgot-password', forgotPassword);
+router.post('/auth/reset-password', resetPassword);
+
+// Protected Routes
+router.use(authenticateToken); // Apply to all subsequent routes
 
 /**
  * @swagger

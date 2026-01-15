@@ -13,6 +13,25 @@ const data = [
 ];
 
 const Analytics = () => {
+    const handleDownload = () => {
+        const headers = ['Month', 'Value'];
+        const csvContent = [
+            headers.join(','),
+            ...data.map(row => `${row.name},${row.value}`)
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'insureos_analytics_report.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="max-w-7xl mx-auto">
 
@@ -21,7 +40,10 @@ const Analytics = () => {
                     <h1 className="font-serif text-5xl font-bold text-ink-900 italic">Performance Insights</h1>
                     <p className="text-ink-500 mt-2 font-serif text-lg">Metrics and trends for the current quarter.</p>
                 </div>
-                <button className="border border-line px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-ink-900 hover:text-white transition-colors">
+                <button
+                    onClick={handleDownload}
+                    className="border border-line px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-ink-900 hover:text-white transition-colors cursor-pointer"
+                >
                     Download Report
                 </button>
             </header>

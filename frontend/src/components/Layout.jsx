@@ -105,19 +105,24 @@ const Layout = () => {
                     </div>
                 </div>
 
-                {/* User Profile */}
+                {/* User Block */}
                 <div className="p-6 border-t border-line">
                     <div className="flex items-center gap-4 p-3 rounded-sm hover:bg-white border border-transparent hover:border-line transition-all cursor-pointer group">
                         <img
-                            src="https://api.dicebear.com/7.x/notionists/svg?seed=Jane"
+                            src={`https://api.dicebear.com/7.x/notionists/svg?seed=${JSON.parse(localStorage.getItem('user') || '{}').name || 'User'}`}
                             alt="User"
                             className="w-10 h-10 rounded-full bg-line"
                         />
                         <div className="flex-1 min-w-0">
-                            <div className="font-serif font-bold text-ink-900 leading-tight">Jane Smith</div>
-                            <div className="text-xs text-ink-500 mt-0.5">Senior Broker</div>
+                            <div className="font-serif font-bold text-ink-900 leading-tight">
+                                {JSON.parse(localStorage.getItem('user') || '{}').name || 'Jane Smith'}
+                            </div>
+                            <div className="text-xs text-ink-500 mt-0.5">Authorized User</div>
                         </div>
-                        <LogOut className="w-4 h-4 text-ink-300 group-hover:text-ink-900 transition-colors" />
+                        <LogOut className="w-4 h-4 text-ink-300 group-hover:text-ink-900 transition-colors" onClick={() => {
+                            localStorage.clear();
+                            window.location.href = '/login';
+                        }} />
                     </div>
                 </div>
             </aside>
