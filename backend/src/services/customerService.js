@@ -7,32 +7,38 @@ const getCustomers = async (page = 1, limit = 10) => {
     const total = await Customer.countDocuments();
 
     // Aggregation to fetch customers AND count their policies
-    const customers = await Customer.aggregate([
+    const rawCustomers = await Customer.aggregate([
         { $sort: { createdAt: -1 } },
         { $skip: skip },
         { $limit: limit },
         {
             $lookup: {
-                from: 'policies', // The collection name in MongoDB (usually lowercase plural of model name)
-                localField: '_id', // The customer's _id (which is a String uuid)
-                foreignField: 'customerId', // The field in Policy model
+                from: 'policies',
+                localField: '_id',
+                foreignField: 'customerId',
                 as: 'policies'
             }
         },
         {
             $addFields: {
-                // Add a "matches" field or just count the array
-                _count: {
-                    policies: { $size: "$policies" }
-                }
+                policyCount: { $size: "$policies" }
             }
         },
         {
             $project: {
-                policies: 0 // Remove the heavy array, keep only the count
+                policies: 0
             }
         }
     ]);
+
+    // Map to ensure 'id' property exists and form structure matches frontend expectation
+    const customers = rawCustomers.map(c => ({
+        ...c,
+        id: c._id.toString(), // Ensure 'id' exists for frontend
+        _count: {
+            policies: c.policyCount || 0
+        }
+    }));
 
     return {
         data: customers,
