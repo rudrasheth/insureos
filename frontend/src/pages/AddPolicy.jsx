@@ -76,14 +76,20 @@ const AddPolicy = () => {
                             <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink-300 mb-4 group-focus-within:text-accent">
                                 <Shield className="w-4 h-4" /> Coverage Scope
                             </label>
-                            <input
+                            <select
                                 required
-                                type="text"
-                                className="input-field text-xl"
-                                placeholder="e.g. Corporate Liability Shield"
+                                className="input-field cursor-pointer appearance-none text-xl p-0"
                                 value={formData.policyType}
                                 onChange={(e) => setFormData({ ...formData, policyType: e.target.value })}
-                            />
+                            >
+                                <option value="">Select Coverage...</option>
+                                <option value="Life Insurance">Life Insurance</option>
+                                <option value="Health Insurance">Health Insurance</option>
+                                <option value="Vehicle Insurance">Vehicle Insurance</option>
+                                <option value="Property Insurance">Property Insurance</option>
+                                <option value="Corporate Liability">Corporate Liability</option>
+                                <option value="Travel Insurance">Travel Insurance</option>
+                            </select>
                         </div>
 
                         <div className="grid grid-cols-2 gap-12">
