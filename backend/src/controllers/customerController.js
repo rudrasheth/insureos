@@ -12,7 +12,7 @@ const getCustomers = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const result = await customerService.getCustomers(page, limit);
+        const result = await customerService.getCustomers(page, limit, req.user);
         res.json(result);
     } catch (error) {
         next(error);
@@ -22,7 +22,7 @@ const getCustomers = async (req, res, next) => {
 const createCustomer = async (req, res, next) => {
     try {
         const data = customerSchema.parse(req.body);
-        const customer = await customerService.createCustomer(data);
+        const customer = await customerService.createCustomer(data, req.user);
         res.status(201).json(customer);
     } catch (error) {
         if (error.message === 'Email already exists') {

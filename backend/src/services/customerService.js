@@ -1,13 +1,20 @@
 const Customer = require('../models/Customer');
 
-const getCustomers = async (page = 1, limit = 10) => {
+const getCustomers = async (page = 1, limit = 10, user) => {
     const skip = (page - 1) * limit;
 
+    // RBAC Filter
+    const filter = {};
+    if (user.role !== 'admin') {
+        filter.createdBy = user.id;
+    }
+
     // Fetch total count for pagination
-    const total = await Customer.countDocuments();
+    const total = await Customer.countDocuments(filter);
 
     // Aggregation to fetch customers AND count their policies
     const rawCustomers = await Customer.aggregate([
+        { $match: filter }, // Apply RBAC Filter
         { $sort: { createdAt: -1 } },
         { $skip: skip },
         { $limit: limit },
@@ -51,14 +58,17 @@ const getCustomers = async (page = 1, limit = 10) => {
     };
 };
 
-const createCustomer = async (data) => {
-    // Check for existing email
+const createCustomer = async (data, user) => {
+    // Check for existing email (globally unique)
     const existing = await Customer.findOne({ email: data.email });
     if (existing) {
         throw new Error('Email already exists');
     }
 
-    return await Customer.create(data);
+    return await Customer.create({
+        ...data,
+        createdBy: user.id
+    });
 };
 
 module.exports = {
