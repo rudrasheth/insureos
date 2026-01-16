@@ -1,34 +1,30 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: policy_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   backend:
     build: ./backend
     ports:
       - "4000:4000"
     environment:
-      DATABASE_URL: postgres://user:password@postgres:5432/policy_db
-      PORT: 4000
+      - PORT=4000
+      - MONGO_URI=mongodb://mongo:27017/insureos
+      - JWT_SECRET=dev_secret_key_change_me
     depends_on:
-      - postgres
-    command: sh -c "npx prisma db push && npm start"
+      - mongo
 
   frontend:
     build: ./frontend
     ports:
-      - "5173:80"
+      - "3000:80"
     depends_on:
       - backend
 
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
 volumes:
-  postgres_data:
+  mongo-data:
