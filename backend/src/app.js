@@ -31,6 +31,29 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 // Health Check
 app.get('/health', (req, res) => res.json({ status: 'UP', timestamp: new Date() }));
 
+// DB Debug Endpoint
+app.get('/db-check', async (req, res) => {
+    try {
+        const mongoose = require('mongoose');
+        // Try to connect if not connected
+        if (mongoose.connection.readyState !== 1) {
+            await connectDB();
+        }
+        res.json({
+            status: 'Connected',
+            readyState: mongoose.connection.readyState,
+            host: mongoose.connection.host,
+            dbName: mongoose.connection.name
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'Error',
+            message: error.message,
+            reason: "Likely IP Whitelist issue or paused Cluster"
+        });
+    }
+});
+
 // Routes
 app.use('/api', apiRoutes);
 
