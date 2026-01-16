@@ -194,19 +194,78 @@ const CallModal = ({ customer, onClose }) => {
     };
 
                     return (
-                    // ... (JSX remains same until button)
-                    // ... inside Controls div ...
-                    <button
-                        onClick={handleMicClick}
-                        className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors active:bg-accent/20"
-                    >
-                        <Mic className="w-6 h-6" />
-                    </button>
-                </div>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                        <div className="w-full max-w-sm bg-[#1c1c1e] rounded-[40px] shadow-2xl overflow-hidden border border-white/10 relative h-[600px] flex flex-col">
 
-            </div>
-        </div>
-    );
+                            {/* Header */}
+                            <div className="flex justify-between items-center p-6 pt-12">
+                                <div className="w-8"></div> {/* Spacer */}
+                                <div className="text-white/50 text-xs font-medium tracking-widest uppercase">InsureOS Intelligence</div>
+                                <div className="w-8"></div> {/* Spacer */}
+                            </div>
+
+                            {/* Profile */}
+                            <div className="flex-1 flex flex-col items-center justify-center -mt-10">
+                                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-ink-900 to-ink-500 p-[2px] mb-6 relative">
+                                    <div className="w-full h-full rounded-full bg-[#1c1c1e] p-1">
+                                        <img
+                                            src={`https://api.dicebear.com/7.x/notionists/svg?seed=${customer.name}`}
+                                            alt="Avatar"
+                                            className="w-full h-full rounded-full bg-white"
+                                        />
+                                    </div>
+                                    {status === 'speaking' && (
+                                        <div className="absolute inset-0 rounded-full border-2 border-accent/50 animate-ping"></div>
+                                    )}
+                                </div>
+
+                                <h2 className="text-2xl font-serif text-white font-medium mb-2">{customer.name}</h2>
+
+                                {status === 'connecting' && <div className="text-white/50 animate-pulse">Connecting...</div>}
+                                {status === 'speaking' && <div className="text-accent font-medium">Briefing in progress...</div>}
+                                {status === 'connected' && <div className="text-white/50">{formatTime(duration)}</div>}
+
+                                {/* Audio Visualizer Mock */}
+                                {status === 'speaking' && (
+                                    <div className="flex gap-1 h-8 items-center mt-8">
+                                        {[...Array(5)].map((_, i) => (
+                                            <div key={i} className="w-1 bg-white rounded-full animate-bounce" style={{ height: Math.random() * 24 + 8 + 'px', animationDelay: i * 0.1 + 's' }}></div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Subtitles (Optional) */}
+                            {status === 'speaking' && (
+                                <div className="px-8 text-center mb-8 h-20 flex items-center justify-center">
+                                    <p className="text-white/60 text-sm font-medium leading-relaxed line-clamp-3">
+                                        "{script}"
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Controls */}
+                            <div className="bg-[#2c2c2e] p-8 pb-12 rounded-t-[40px] flex justify-around items-center">
+                                <button className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                                    <Volume2 className="w-6 h-6" />
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition-all scale-100 active:scale-95"
+                                >
+                                    <PhoneOff className="w-8 h-8 fill-current" />
+                                </button>
+                                <button
+                                    onClick={handleMicClick}
+                                    className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors active:bg-accent/20"
+                                >
+                                    <Mic className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                    );
 };
 
-export default CallModal;
+                    export default CallModal;
