@@ -83,6 +83,54 @@ const CallModal = ({ customer, onClose }) => {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const handleMicClick = () => {
+        // Simple Speech Recognition Check
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Speech recognition isn't supported in this browser.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.start();
+
+        setStatus('connecting'); // Show listening state visually
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.toLowerCase();
+            console.log("Heard:", transcript);
+
+            // Simple AI Logic (Rule Based)
+            let reply = "I'm sorry, I didn't catch that.";
+
+            if (transcript.includes('premium') || transcript.includes('cost') || transcript.includes('much')) {
+                // Calculate premium again or use saved state (simplified here)
+                reply = "The total annual premium for this client is calculated based on their active policies. Please refer to the dashboard for the exact figure.";
+            } else if (transcript.includes('status') || transcript.includes('active')) {
+                reply = "This client has an active partnership status.";
+            } else if (transcript.includes('hello') || transcript.includes('hi')) {
+                reply = "Hello there. How can I assist you with this policy?";
+            } else if (transcript.includes('thank')) {
+                reply = "You are very welcome.";
+            }
+
+            // Speak Response
+            const utterance = new SpeechSynthesisUtterance(reply);
+            utterance.rate = 0.9;
+            utterance.onend = () => setStatus('connected');
+
+            setScript(reply);
+            setStatus('speaking');
+            synth.current.speak(utterance);
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error", event.error);
+            setStatus('connected');
+        };
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
             <div className="w-full max-w-sm bg-[#1c1c1e] rounded-[40px] shadow-2xl overflow-hidden border border-white/10 relative h-[600px] flex flex-col">
@@ -145,59 +193,17 @@ const CallModal = ({ customer, onClose }) => {
                     >
                         <PhoneOff className="w-8 h-8 fill-current" />
                     </button>
-    const handleMicClick = () => {
-        // Simple Speech Recognition Check
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    if (!SpeechRecognition) {
-                        alert("Speech recognition isn't supported in this browser.");
-                    return;
-        }
-
-                    const recognition = new SpeechRecognition();
-                    recognition.lang = 'en-US';
-                    recognition.start();
-
-                    setStatus('connecting'); // Show listening state visually
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.toLowerCase();
-                    console.log("Heard:", transcript);
-
-                    // Simple AI Logic (Rule Based)
-                    let reply = "I'm sorry, I didn't catch that.";
-
-                    if (transcript.includes('premium') || transcript.includes('cost') || transcript.includes('much')) {
-                        // Calculate premium again or use saved state (simplified here)
-                        reply = "The total annual premium for this client is calculated based on their active policies. Please refer to the dashboard for the exact figure.";
-            } else if (transcript.includes('status') || transcript.includes('active')) {
-                        reply = "This client has an active partnership status.";
-            } else if (transcript.includes('hello') || transcript.includes('hi')) {
-                        reply = "Hello there. How can I assist you with this policy?";
-            } else if (transcript.includes('thank')) {
-                        reply = "You are very welcome.";
-            }
-
-                    // Speak Response
-                    const utterance = new SpeechSynthesisUtterance(reply);
-                    utterance.rate = 0.9;
-            utterance.onend = () => setStatus('connected');
-
-                    setScript(reply);
-                    setStatus('speaking');
-                    synth.current.speak(utterance);
-        };
-
-        recognition.onerror = (event) => {
-                        console.error("Speech recognition error", event.error);
-                    setStatus('connected');
-        };
-    };
-
-                    return (
+                    <button
+                        onClick={handleMicClick}
+                        className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors active:bg-accent/20"
+                    >
+                        <Mic className="w-6 h-6" />
+                    </button>
                 </div>
-                );
+
+            </div>
+        </div>
+    );
 };
 
-                export default CallModal;
-
-                export default CallModal;
+export default CallModal;
