@@ -1,37 +1,37 @@
-const prisma = require('../config/db');
+const Customer = require('../models/Customer');
 
-const getAllCustomers = async (page, limit) => {
+const getCustomers = async (page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
-    const [customers, total] = await Promise.all([
-        prisma.customer.findMany({
-            skip,
-            take: limit,
-            orderBy: { createdAt: 'desc' },
-            include: { _count: { select: { policies: true } } }
-        }),
-        prisma.customer.count(),
-    ]);
+
+    // Mongoose countDocuments is async
+    const total = await Customer.countDocuments();
+    const customers = await Customer.find()
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
 
     return {
         data: customers,
         meta: {
             total,
-            page,
-            limit,
+            page: parseInt(page),
+            limit: parseInt(limit),
             totalPages: Math.ceil(total / limit),
         },
     };
 };
 
 const createCustomer = async (data) => {
-    const existing = await prisma.customer.findUnique({ where: { email: data.email } });
+    // Check for existing email
+    const existing = await Customer.findOne({ email: data.email });
     if (existing) {
         throw new Error('Email already exists');
     }
-    return prisma.customer.create({ data });
+
+    return await Customer.create(data);
 };
 
 module.exports = {
-    getAllCustomers,
+    getCustomers,
     createCustomer,
 };

@@ -10,18 +10,20 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
-    // Prisma unique constraint violation
-    if (err.code === 'P2002') {
+    // Mongoose duplicate key error
+    if (err.code === 11000) {
+        const field = Object.keys(err.keyValue)[0];
         return res.status(409).json({
             error: 'Conflict',
-            message: 'A record with this field already exists',
+            message: `A record with this ${field} already exists`,
         });
     }
 
-    if (err.code === 'P2025') {
-        return res.status(404).json({
-            error: 'Not Found',
-            message: 'Record not found',
+    // Mongoose CastError (invalid ID)
+    if (err.name === 'CastError') {
+        return res.status(400).json({
+            error: 'Invalid ID',
+            message: 'Resource not found',
         });
     }
 

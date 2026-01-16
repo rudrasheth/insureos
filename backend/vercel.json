@@ -1,0 +1,23 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "src/app.js",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "src/app.js"
+        }
+    ],
+    "env": {
+        "MONGO_URI": "mongodb+srv://rudrasheth2201_db_user:EYbAvRQSK1fGr3mU@cluster0.nmnzklq.mongodb.net/insureos?retryWrites=true&w=majority&appName=Cluster0",
+        "JWT_SECRET": "insureos-secure-jwt-secret-key-2024",
+        "SMTP_HOST": "smtp.gmail.com",
+        "SMTP_PORT": "587",
+        "SMTP_USER": "stockmaster577@gmail.com",
+        "SMTP_PASS": "obuauvyjlerywxke"
+    }
+}

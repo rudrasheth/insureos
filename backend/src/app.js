@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,11 +7,12 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
 const apiRoutes = require('./routes/api');
 const errorHandler = require('./middleware/errorHandler');
+const connectDB = require('./config/db');
 
 const app = express();
 
-// Fix BigInt serialization
-BigInt.prototype.toJSON = function () { return Number(this) };
+// Connect to MongoDB
+connectDB();
 
 // Security & Logging
 app.use(helmet());
