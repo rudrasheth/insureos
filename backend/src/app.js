@@ -17,7 +17,10 @@ connectDB().catch(err => console.error("Database Connection Failed", err));
 // Security & Logging
 app.use(helmet());
 app.use(morgan('dev'));
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
 
 // Middleware
 app.use(express.json());
