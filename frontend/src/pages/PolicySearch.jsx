@@ -36,12 +36,24 @@ const PolicySearch = () => {
                         <div className="relative group">
                             <input
                                 type="text"
-                                className="input-field text-2xl py-4"
-                                placeholder="Search archives by city or type..."
+                                className="input-field text-xl py-4"
+                                placeholder="Filter by City..."
                                 value={filters.city}
                                 onChange={(e) => setFilters({ ...filters, city: e.target.value })}
                             />
-                            <Search className="absolute right-0 top-6 w-6 h-6 text-ink-300" />
+                            <Search className="absolute right-0 top-5 w-5 h-5 text-ink-300" />
+                        </div>
+                    </div>
+                    <div className="flex-1 w-full">
+                        <div className="relative group">
+                            <input
+                                type="text"
+                                className="input-field text-xl py-4"
+                                placeholder="Filter by Policy Type..."
+                                value={filters.policyType}
+                                onChange={(e) => setFilters({ ...filters, policyType: e.target.value })}
+                            />
+                            <Filter className="absolute right-0 top-5 w-5 h-5 text-ink-300" />
                         </div>
                     </div>
                     <div className="w-full md:w-64">
