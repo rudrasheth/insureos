@@ -36,7 +36,7 @@ const CustomerList = () => {
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
                 <div className="max-w-xl">
                     <h1 className="text-5xl mb-4 text-ink-900">Client Directory</h1>
-                    <p className="text-ink-500 text-lg font-serif italic">
+                    <p className="text-ink-500 text-lg font-medium">
                         "A curated registry of all active partnerships and entities."
                     </p>
                 </div>

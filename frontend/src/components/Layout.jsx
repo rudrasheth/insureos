@@ -47,7 +47,7 @@ const Layout = () => {
                             <Command className="w-5 h-5 text-ink-900" strokeWidth={1.5} />
                         </div>
                         <div>
-                            <h1 className="font-serif text-2xl font-bold italic tracking-tight text-ink-900 leading-none">Insure</h1>
+                            <h1 className="font-sans text-2xl font-bold tracking-tight text-ink-900 leading-none">Insure</h1>
                             <span className="text-[10px] font-sans uppercase tracking-[0.2em] text-ink-500">Operating System</span>
                         </div>
                     </div>
@@ -116,7 +116,7 @@ const Layout = () => {
                                 >
                                     <div className="flex items-center gap-4">
                                         <item.icon className="w-4 h-4 text-ink-900" strokeWidth={1.5} />
-                                        <span className="font-serif italic text-lg">{item.label}</span>
+                                        <span className="font-medium text-lg">{item.label}</span>
                                     </div>
                                     <ArrowRight className="w-3 h-3 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </NavLink>
@@ -160,7 +160,7 @@ const Layout = () => {
                         <div className="flex items-center gap-2 text-ink-300 text-sm font-medium">
                             <span>Workspace</span>
                             <span>/</span>
-                            <span className="text-ink-900 font-serif italic">{location.pathname === '/' ? 'Overview' : location.pathname.slice(1)}</span>
+                            <span className="text-ink-900 font-medium">{location.pathname === '/' ? 'Overview' : location.pathname.slice(1)}</span>
                         </div>
                     </div>
                     <div className="text-sm font-sans font-bold tracking-widest text-ink-900 hidden md:block">
