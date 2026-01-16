@@ -38,7 +38,7 @@ const CallModal = ({ customer, onClose }) => {
                 if (policies.length === 0) {
                     text += `This client currently has no active policies on file. They are located in ${customer.city}. You might consider proposing a new Life or Health insurance plan.`;
                 } else {
-                    text += `They currently have ${activeCount} active contracts with a total annual premium value of ${totalPremium.toLocaleString()} rupees. `;
+                    text += `They currently have ${activeCount} active contracts with a total annual premium value of ₹${totalPremium.toLocaleString()}. `;
                     text += `Their most recent policy is a ${policies[0].policyType} plan. `;
                     text += `They are based in ${customer.city}. Relationship status is healthy.`;
                 }
