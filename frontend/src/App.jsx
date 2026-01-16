@@ -13,9 +13,12 @@ import ResetPassword from './pages/ResetPassword';
 
 import RequireAuth from './components/RequireAuth';
 
+import { Toaster } from 'react-hot-toast';
+
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
