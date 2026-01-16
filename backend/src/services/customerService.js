@@ -3,10 +3,14 @@ const Customer = require('../models/Customer');
 const getCustomers = async (page = 1, limit = 10, user) => {
     const skip = (page - 1) * limit;
 
-    // RBAC Filter
+    // RBAC Filter (Modified to show Legacy Data)
     const filter = {};
     if (user.role !== 'admin') {
-        filter.createdBy = user.id;
+        filter.$or = [
+            { createdBy: user.id },
+            { createdBy: { $exists: false } }, // Show old records too
+            { createdBy: null }
+        ];
     }
 
     // Fetch total count for pagination
