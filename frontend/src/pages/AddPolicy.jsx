@@ -51,7 +51,7 @@ const AddPolicy = () => {
                         Cancel & Return
                     </button>
 
-                    <h2 className="font-serif text-4xl font-bold text-ink-900 italic mb-12">New Policy Contract</h2>
+                    <h2 className="font-sans text-4xl font-bold text-ink-900 mb-12">New Policy Contract</h2>
 
                     <form onSubmit={handleSubmit} className="space-y-12">
 
@@ -100,7 +100,7 @@ const AddPolicy = () => {
                                 <input
                                     required
                                     type="date"
-                                    className="input-field text-lg font-serif"
+                                    className="input-field text-lg font-sans"
                                     value={formData.startDate}
                                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                                 />
@@ -112,7 +112,7 @@ const AddPolicy = () => {
                                 <input
                                     required
                                     type="date"
-                                    className="input-field text-lg font-serif"
+                                    className="input-field text-lg font-sans"
                                     value={formData.endDate}
                                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                                 />
@@ -138,12 +138,12 @@ const AddPolicy = () => {
                         <div className="w-12 h-12 border border-ink-900 rounded-full flex items-center justify-center mb-8">
                             <Receipt className="w-5 h-5" />
                         </div>
-                        <h3 className="font-serif text-2xl italic text-ink-900 mb-2">Premium Calculation</h3>
-                        <p className="text-sm text-ink-500 font-serif italic">Annual payable amount.</p>
+                        <h3 className="font-sans text-2xl font-bold text-ink-900 mb-2">Premium Calculation</h3>
+                        <p className="text-sm text-ink-500 font-medium">Annual payable amount.</p>
                     </div>
 
                     <div className="relative z-10">
-                        <div className="text-6xl font-serif font-bold text-ink-900 mb-2 tracking-tighter">
+                        <div className="text-6xl font-sans font-bold text-ink-900 mb-2 tracking-tighter">
                             <span className="text-2xl align-top mr-1">₹</span>
                             {formData.premiumAmount || '0'}
                             <span className="text-xl text-ink-300 ml-1">.00</span>

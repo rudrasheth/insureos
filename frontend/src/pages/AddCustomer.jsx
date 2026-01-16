@@ -34,7 +34,7 @@ const AddCustomer = () => {
 
                 <div className="flex items-center justify-between mb-16">
                     <div>
-                        <h1 className="font-serif text-4xl font-bold text-ink-900 italic">New Client Entry</h1>
+                        <h1 className="font-sans text-4xl font-bold text-ink-900">New Client Entry</h1>
                         <p className="text-ink-500 mt-2 font-medium">Please fill in the official registry details below.</p>
                     </div>
                     <button onClick={() => navigate('/')} className="w-12 h-12 rounded-full border border-line flex items-center justify-center hover:bg-ink-900 hover:text-white transition-all">
@@ -49,8 +49,8 @@ const AddCustomer = () => {
                         <input
                             required
                             type="text"
-                            className="input-field text-3xl font-serif py-4"
-                            placeholder="e.g. Sterling Cooper"
+                            className="input-field text-3xl font-sans font-bold py-4"
+                            placeholder="e.g. Rahul Sharma"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         />
@@ -63,7 +63,7 @@ const AddCustomer = () => {
                                 required
                                 type="email"
                                 className="input-field text-xl"
-                                placeholder="contact@domain.com"
+                                placeholder="contact@example.com"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             />
@@ -73,7 +73,7 @@ const AddCustomer = () => {
                             <input
                                 type="text"
                                 className="input-field text-xl"
-                                placeholder="+1 000 000 0000"
+                                placeholder="+91 98765 43210"
                                 value={formData.phone}
                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             />
@@ -86,7 +86,7 @@ const AddCustomer = () => {
                             required
                             type="text"
                             className="input-field text-xl"
-                            placeholder="e.g. Madison Avenue, NY"
+                            placeholder="e.g. Mumbai, Maharashtra"
                             value={formData.city}
                             onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                         />
