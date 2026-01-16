@@ -14,7 +14,7 @@ async function connectDB() {
 
     if (!cached.promise) {
         const opts = {
-            bufferCommands: false, // Disable Mongoose buffering for faster errors
+            bufferCommands: true,
             serverSelectionTimeoutMS: 5000,
         };
 
