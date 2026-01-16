@@ -23,6 +23,17 @@ app.use(cors({
 }));
 
 // Middleware
+// Middleware to ensure DB connection
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error("Database Connection Failed in Middleware:", error);
+        res.status(500).json({ error: "Database Connection Failed", details: error.message });
+    }
+});
+
 app.use(express.json());
 
 // Documentation
