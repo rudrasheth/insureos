@@ -38,55 +38,59 @@ const searchPolicies = async (filters) => {
 };
 
 const getDashboardStats = async () => {
+    // 1. Fetch Client Count (Independent of Policies)
+    let totalClients = 0;
     try {
+        totalClients = await Customer.countDocuments();
+    } catch (e) {
+        console.error("Failed to count clients:", e);
+    }
+
+    // 2. Fetch Policy Stats (Safely)
+    let totalRevenue = 0;
+    let activePolicies = 0;
+    let chartData = [];
+    const pendingClaims = 14;
+
+    try {
+        // Count Active Policies
+        activePolicies = await Policy.countDocuments({ status: 'active' });
+
+        // Calculate Revenue
         const totalRevenueResult = await Policy.aggregate([
             { $group: { _id: null, total: { $sum: "$premiumAmount" } } }
         ]);
-        const totalRevenue = totalRevenueResult[0]?.total || 0;
+        totalRevenue = totalRevenueResult[0]?.total || 0;
 
-        const totalClients = await Customer.countDocuments();
-        const activePolicies = await Policy.countDocuments({ status: 'active' });
-        const pendingClaims = 14;
+        // Calculate Chart Data
+        const monthlyData = await Policy.aggregate([
+            {
+                $group: {
+                    _id: { $month: "$startDate" },
+                    value: { $sum: "$premiumAmount" }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
 
-        let chartData = [];
-        try {
-            const monthlyData = await Policy.aggregate([
-                {
-                    $group: {
-                        _id: { $month: "$startDate" },
-                        value: { $sum: "$premiumAmount" }
-                    }
-                },
-                { $sort: { "_id": 1 } }
-            ]);
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        chartData = monthlyData.map(item => ({
+            name: monthNames[item._id - 1] || 'Unknown',
+            value: item.value
+        }));
 
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            chartData = monthlyData.map(item => ({
-                name: monthNames[item._id - 1] || 'Unknown',
-                value: item.value
-            }));
-        } catch (aggError) {
-            console.error("Aggregation failed (likely no data):", aggError);
-            chartData = [];
-        }
-
-        return {
-            revenue: totalRevenue,
-            activeClients,
-            activePolicies,
-            pendingClaims,
-            chartData
-        };
-    } catch (error) {
-        console.error("Dashboard Stats Error:", error);
-        return {
-            revenue: 0,
-            activeClients: 0,
-            activePolicies: 0,
-            pendingClaims: 0,
-            chartData: []
-        };
+    } catch (policyError) {
+        console.error("Policy stats aggregation failed (likely no policies yet):", policyError);
+        // We do NOT reset totalClients here. We just keep policy stats as 0.
     }
+
+    return {
+        revenue: totalRevenue,
+        activeClients: totalClients,
+        activePolicies,
+        pendingClaims,
+        chartData
+    };
 };
 
 module.exports = {
