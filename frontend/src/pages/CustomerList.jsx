@@ -69,9 +69,14 @@ const CustomerList = () => {
                                         REF: {customer.id.slice(0, 8)}
                                     </div>
                                 </div>
-                                <div className="md:col-span-3 text-sm text-ink-500 font-medium flex items-center">
-                                    <span className="w-2 h-px bg-ink-300 mr-2 hidden md:block"></span>
-                                    {customer.email}
+                                <div className="md:col-span-3 text-sm text-ink-500 font-medium flex flex-col justify-center">
+                                    <div className="flex items-center">
+                                        <span className="w-2 h-px bg-ink-300 mr-2 hidden md:block"></span>
+                                        {customer.email}
+                                    </div>
+                                    <div className="md:ml-4 text-[11px] text-ink-400 mt-0.5">
+                                        {customer.phone || 'No Phone'}
+                                    </div>
                                 </div>
                                 <div className="md:col-span-2">
                                     <span className="font-serif italic text-ink-900 text-lg">
