@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:4001/api',
+    baseURL: 'https://insureos-backend.vercel.app/api',
 });
 
 // Add a request interceptor to include the auth token
