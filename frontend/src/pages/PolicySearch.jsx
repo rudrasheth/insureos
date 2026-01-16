@@ -78,7 +78,9 @@ const PolicySearch = () => {
                         <div className="flex justify-between items-end">
                             <div>
                                 <div className="text-[10px] uppercase tracking-widest text-ink-300 mb-1">Key Location</div>
-                                <div className="font-serif text-lg text-ink-900">{policy.customer?.city || 'N/A'}</div>
+                                <div className="font-serif text-lg text-ink-900">{policy.customerId?.city || 'Unknown'}</div>
+                                <div className="text-[10px] uppercase tracking-widest text-ink-300 mt-2 mb-1">Expires</div>
+                                <div className="font-mono text-xs text-ink-500">{new Date(policy.endDate).toLocaleDateString()}</div>
                             </div>
                             <div className="text-right">
                                 <div className="text-[10px] uppercase tracking-widest text-ink-300 mb-1">Premium</div>
