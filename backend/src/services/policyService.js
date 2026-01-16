@@ -38,40 +38,55 @@ const searchPolicies = async (filters) => {
 };
 
 const getDashboardStats = async () => {
-    const totalRevenueResult = await Policy.aggregate([
-        { $group: { _id: null, total: { $sum: "$premiumAmount" } } }
-    ]);
-    const totalRevenue = totalRevenueResult[0]?.total || 0;
+    try {
+        const totalRevenueResult = await Policy.aggregate([
+            { $group: { _id: null, total: { $sum: "$premiumAmount" } } }
+        ]);
+        const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    const totalClients = await Customer.countDocuments();
-    const activePolicies = await Policy.countDocuments({ status: 'active' });
-    const pendingClaims = 14; // Mocking this as we don't have Claims model yet
+        const totalClients = await Customer.countDocuments();
+        const activePolicies = await Policy.countDocuments({ status: 'active' });
+        const pendingClaims = 14;
 
-    // Simple Monthly Revenue Aggregation (Last 6 Months)
-    const monthlyData = await Policy.aggregate([
-        {
-            $group: {
-                _id: { $month: "$startDate" },
-                value: { $sum: "$premiumAmount" }
-            }
-        },
-        { $sort: { "_id": 1 } }
-    ]);
+        let chartData = [];
+        try {
+            const monthlyData = await Policy.aggregate([
+                {
+                    $group: {
+                        _id: { $month: "$startDate" },
+                        value: { $sum: "$premiumAmount" }
+                    }
+                },
+                { $sort: { "_id": 1 } }
+            ]);
 
-    // Map numerical months to names
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const chartData = monthlyData.map(item => ({
-        name: monthNames[item._id - 1],
-        value: item.value
-    }));
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            chartData = monthlyData.map(item => ({
+                name: monthNames[item._id - 1] || 'Unknown',
+                value: item.value
+            }));
+        } catch (aggError) {
+            console.error("Aggregation failed (likely no data):", aggError);
+            chartData = [];
+        }
 
-    return {
-        revenue: totalRevenue,
-        activeClients,
-        activePolicies,
-        pendingClaims,
-        chartData
-    };
+        return {
+            revenue: totalRevenue,
+            activeClients,
+            activePolicies,
+            pendingClaims,
+            chartData
+        };
+    } catch (error) {
+        console.error("Dashboard Stats Error:", error);
+        return {
+            revenue: 0,
+            activeClients: 0,
+            activePolicies: 0,
+            pendingClaims: 0,
+            chartData: []
+        };
+    }
 };
 
 module.exports = {
