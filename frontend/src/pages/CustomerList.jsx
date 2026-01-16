@@ -44,8 +44,8 @@ const CustomerList = () => {
             </div>
 
             {/* Unique "Paper" List */}
-            <div className="bg-white border border-line shadow-sm">
-                <div className="grid grid-cols-12 py-6 px-8 border-b border-line bg-surface/30 text-xs font-bold uppercase tracking-widest text-ink-500">
+            <div className="bg-white border border-line shadow-sm overflow-hidden">
+                <div className="hidden md:grid grid-cols-12 py-6 px-8 border-b border-line bg-surface/30 text-xs font-bold uppercase tracking-widest text-ink-500">
                     <div className="col-span-5">Entity Name</div>
                     <div className="col-span-3">Contact</div>
                     <div className="col-span-2">Location</div>
@@ -60,25 +60,25 @@ const CustomerList = () => {
                         </div>
                     ) : (
                         customers.map((customer) => (
-                            <div key={customer.id} className="grid grid-cols-12 py-6 px-8 hover:bg-surface/50 transition-colors cursor-pointer group items-center">
-                                <div className="col-span-5 pr-8">
-                                    <div className="font-serif text-2xl text-ink-900 group-hover:text-accent transition-colors font-medium">
+                            <div key={customer.id} className="flex flex-col md:grid md:grid-cols-12 py-6 px-6 md:px-8 hover:bg-surface/50 transition-colors cursor-pointer group items-start md:items-center gap-4 md:gap-0">
+                                <div className="md:col-span-5 w-full">
+                                    <div className="font-serif text-xl md:text-2xl text-ink-900 group-hover:text-accent transition-colors font-medium">
                                         {customer.name}
                                     </div>
                                     <div className="text-[10px] text-ink-300 font-mono mt-1 uppercase tracking-wider">
                                         REF: {customer.id.slice(0, 8)}
                                     </div>
                                 </div>
-                                <div className="col-span-3 text-sm text-ink-500 font-medium flex items-center">
-                                    <span className="w-2 h-px bg-ink-300 mr-2"></span>
+                                <div className="md:col-span-3 text-sm text-ink-500 font-medium flex items-center">
+                                    <span className="w-2 h-px bg-ink-300 mr-2 hidden md:block"></span>
                                     {customer.email}
                                 </div>
-                                <div className="col-span-2">
+                                <div className="md:col-span-2">
                                     <span className="font-serif italic text-ink-900 text-lg">
                                         {customer.city}
                                     </span>
                                 </div>
-                                <div className="col-span-2 text-right">
+                                <div className="md:col-span-2 w-full md:text-right">
                                     {(customer._count?.policies || 0) > 0 ? (
                                         <span className="inline-block px-3 py-1 bg-ink-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">
                                             Active Partnership

@@ -124,11 +124,11 @@ const AddPolicy = () => {
                     </form>
                 </div>
 
-                {/* Editorial Sidebar */}
-                <div className="w-96 bg-canvas border-l border-line p-16 flex flex-col justify-between relative hidden md:flex">
+                {/* Editorial Sidebar - Price for Desktop, Bottom for Mobile */}
+                <div className="w-full md:w-96 bg-canvas border-t md:border-t-0 md:border-l border-line p-8 md:p-16 flex flex-col justify-between relative order-first md:order-last">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
 
-                    <div className="relative z-10">
+                    <div className="relative z-10 mb-8 md:mb-0">
                         <div className="w-12 h-12 border border-ink-900 rounded-full flex items-center justify-center mb-8">
                             <Receipt className="w-5 h-5" />
                         </div>
