@@ -12,7 +12,7 @@ const connectDB = require('./config/db');
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+connectDB().catch(err => console.error("Database Connection Failed", err));
 
 // Security & Logging
 app.use(helmet());
