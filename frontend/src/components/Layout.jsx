@@ -137,7 +137,9 @@ const Layout = () => {
                             <div className="font-serif font-bold text-ink-900 leading-tight truncate">
                                 {JSON.parse(localStorage.getItem('user') || '{}').name || 'Jane Smith'}
                             </div>
-                            <div className="text-xs text-ink-500 mt-0.5">Authorized User</div>
+                            <div className="text-xs text-ink-500 mt-0.5">
+                                {(JSON.parse(localStorage.getItem('user') || '{}').role === 'admin') ? 'Admin Workspace' : 'Agent Workspace'}
+                            </div>
                         </div>
                         <LogOut className="w-4 h-4 text-ink-300 group-hover:text-ink-900 transition-colors" onClick={() => {
                             localStorage.clear();
