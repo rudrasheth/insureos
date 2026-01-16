@@ -40,8 +40,18 @@ const searchPolicies = async (req, res, next) => {
     }
 };
 
+const getDashboardStats = async (req, res, next) => {
+    try {
+        const stats = await policyService.getDashboardStats();
+        res.json(stats);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createPolicy,
     getPoliciesByCustomer,
     searchPolicies,
+    getDashboardStats
 };

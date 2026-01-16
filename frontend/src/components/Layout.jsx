@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutGrid, Search, PieChart, Users, ShieldCheck, ArrowRight, LogOut, Command } from 'lucide-react';
+import { LayoutGrid, Search, PieChart, Users, ShieldCheck, ArrowRight, LogOut, Command, Menu, X } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { clsx } from 'clsx';
 
 const Layout = () => {
     const location = useLocation();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const navItems = [
         { to: '/', label: 'Overview', icon: LayoutGrid },
@@ -25,18 +26,35 @@ const Layout = () => {
                 iconTheme: { primary: '#c2410c', secondary: '#fff' }
             }} />
 
-            {/* Sidebar - The "Ine" (Line) Restored */}
-            <aside className="w-[260px] flex flex-col bg-white border-r border-border-subtle z-20" style={{ boxShadow: '4px 0 24px rgba(0,0,0,0.02)' }}>
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-ink-900/50 z-40 md:hidden backdrop-blur-sm"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
 
-                {/* Brand - Editorial Style */}
-                <div className="h-24 flex items-center px-8">
-                    <div className="w-10 h-10 border border-ink-900 flex items-center justify-center mr-4 rounded-full">
-                        <Command className="w-5 h-5 text-ink-900" strokeWidth={1.5} />
+            {/* Sidebar */}
+            <aside className={clsx(
+                "fixed inset-y-0 left-0 w-[260px] flex flex-col bg-white border-r border-border-subtle z-50 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 shadow-2xl md:shadow-none",
+                isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+            )}>
+
+                {/* Brand */}
+                <div className="h-24 flex items-center justify-between px-8">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 border border-ink-900 flex items-center justify-center mr-4 rounded-full">
+                            <Command className="w-5 h-5 text-ink-900" strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <h1 className="font-serif text-2xl font-bold italic tracking-tight text-ink-900 leading-none">Insure</h1>
+                            <span className="text-[10px] font-sans uppercase tracking-[0.2em] text-ink-500">Operating System</span>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="font-serif text-2xl font-bold italic tracking-tight text-ink-900 leading-none">Insure</h1>
-                        <span className="text-[10px] font-sans uppercase tracking-[0.2em] text-ink-500">Operating System</span>
-                    </div>
+                    {/* Mobile Close Button */}
+                    <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-ink-500 hover:text-ink-900">
+                        <X className="w-6 h-6" />
+                    </button>
                 </div>
 
                 {/* Navigation */}
@@ -52,6 +70,7 @@ const Layout = () => {
                                 <NavLink
                                     key={item.to}
                                     to={item.to}
+                                    onClick={() => setIsSidebarOpen(false)}
                                     className={({ isActive }) =>
                                         clsx(
                                             'group flex items-center justify-between px-4 py-3 rounded-sm transition-all duration-300',
@@ -85,6 +104,7 @@ const Layout = () => {
                                 <NavLink
                                     key={item.to}
                                     to={item.to}
+                                    onClick={() => setIsSidebarOpen(false)}
                                     className={({ isActive }) =>
                                         clsx(
                                             'flex items-center justify-between px-4 py-3 rounded-sm transition-all duration-300 border border-transparent',
@@ -114,7 +134,7 @@ const Layout = () => {
                             className="w-10 h-10 rounded-full bg-line"
                         />
                         <div className="flex-1 min-w-0">
-                            <div className="font-serif font-bold text-ink-900 leading-tight">
+                            <div className="font-serif font-bold text-ink-900 leading-tight truncate">
                                 {JSON.parse(localStorage.getItem('user') || '{}').name || 'Jane Smith'}
                             </div>
                             <div className="text-xs text-ink-500 mt-0.5">Authorized User</div>
@@ -128,20 +148,25 @@ const Layout = () => {
             </aside>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-canvas relative">
-                {/* Top Bar - Minimal */}
-                <header className="h-24 flex items-center justify-between px-12 border-b border-line bg-canvas/80 backdrop-blur-sm sticky top-0 z-10">
-                    <div className="flex items-center gap-2 text-ink-300 text-sm font-medium">
-                        <span>Workspace</span>
-                        <span>/</span>
-                        <span className="text-ink-900 font-serif italic">{location.pathname === '/' ? 'Overview' : location.pathname.slice(1)}</span>
+            <div className="flex-1 flex flex-col min-w-0 bg-canvas relative transition-all duration-300">
+                {/* Top Bar */}
+                <header className="h-24 flex items-center justify-between px-6 md:px-12 border-b border-line bg-canvas/80 backdrop-blur-sm sticky top-0 z-30">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-ink-900 p-2 hover:bg-line rounded-md">
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <div className="flex items-center gap-2 text-ink-300 text-sm font-medium">
+                            <span>Workspace</span>
+                            <span>/</span>
+                            <span className="text-ink-900 font-serif italic">{location.pathname === '/' ? 'Overview' : location.pathname.slice(1)}</span>
+                        </div>
                     </div>
-                    <div className="text-sm font-sans font-bold tracking-widest text-ink-900">
+                    <div className="text-sm font-sans font-bold tracking-widest text-ink-900 hidden md:block">
                         {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-auto p-12 relative">
+                <main className="flex-1 overflow-auto p-4 md:p-12 relative w-full">
                     <Outlet />
                 </main>
             </div>

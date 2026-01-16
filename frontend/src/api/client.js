@@ -23,5 +23,6 @@ export const createCustomer = (data) => api.post('/customers', data);
 export const createPolicy = (data) => api.post('/policies', data);
 export const getPoliciesByCustomer = (customerId) => api.get(`/customers/${customerId}/policies`);
 export const searchPolicies = (params) => api.get('/policies/search', { params });
+export const getDashboardStats = () => api.get('/dashboard/stats');
 
 export default api;

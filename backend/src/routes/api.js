@@ -1,6 +1,6 @@
 const express = require('express');
 const { getCustomers, createCustomer } = require('../controllers/customerController');
-const { createPolicy, getPoliciesByCustomer, searchPolicies } = require('../controllers/policyController');
+const { createPolicy, getPoliciesByCustomer, searchPolicies, getDashboardStats } = require('../controllers/policyController');
 const { register, login, forgotPassword, resetPassword } = require('../controllers/authController');
 const authenticateToken = require('../middleware/authMiddleware');
 
@@ -99,5 +99,7 @@ router.get('/customers/:customerId/policies', getPoliciesByCustomer);
  *         description: Search results
  */
 router.get('/policies/search', searchPolicies);
+
+router.get('/dashboard/stats', getDashboardStats);
 
 module.exports = router;
