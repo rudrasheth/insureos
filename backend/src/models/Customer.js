@@ -21,6 +21,12 @@ const customerSchema = new mongoose.Schema({
     city: {
         type: String,
         required: true
+    },
+    createdBy: {
+        type: String,
+        ref: 'User',
+        required: true,
+        index: true
     }
 }, {
     timestamps: true,
