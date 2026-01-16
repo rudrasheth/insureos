@@ -8,13 +8,20 @@ const CustomerList = () => {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeCallCustomer, setActiveCallCustomer] = useState(null);
+    const [search, setSearch] = useState('');
 
     useEffect(() => {
-        getCustomers({ limit: 100 })
-            .then(res => setCustomers(res.data.data))
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, []);
+        // Debounce search
+        const timeoutId = setTimeout(() => {
+            setLoading(true);
+            getCustomers({ limit: 100, search: search })
+                .then(res => setCustomers(res.data.data))
+                .catch(console.error)
+                .finally(() => setLoading(false));
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [search]);
 
     return (
         <div className="max-w-7xl mx-auto">
@@ -39,6 +46,8 @@ const CustomerList = () => {
                         <input
                             type="text"
                             placeholder="Search the registry..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
                             className="input-field text-xl py-4 border-b-2 border-line focus:border-ink-900 placeholder:text-ink-300"
                         />
                         <Search className="absolute right-0 top-4 w-6 h-6 text-ink-300 group-focus-within:text-ink-900 transition-colors" />

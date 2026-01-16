@@ -1,12 +1,21 @@
 const Customer = require('../models/Customer');
 
-const getCustomers = async (page = 1, limit = 10, user) => {
+const getCustomers = async (page = 1, limit = 10, search = '', user) => {
     const skip = (page - 1) * limit;
 
     // RBAC Filter (STRICT MODE)
     const filter = {};
     if (user.role !== 'admin') {
         filter.createdBy = user.id;
+    }
+
+    // Search Filter
+    if (search) {
+        filter.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+            { city: { $regex: search, $options: 'i' } },
+        ];
     }
 
     // Fetch total count for pagination

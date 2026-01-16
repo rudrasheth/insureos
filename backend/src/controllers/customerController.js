@@ -12,7 +12,8 @@ const getCustomers = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const result = await customerService.getCustomers(page, limit, req.user);
+        const search = req.query.search || '';
+        const result = await customerService.getCustomers(page, limit, search, req.user);
         res.json(result);
     } catch (error) {
         next(error);
