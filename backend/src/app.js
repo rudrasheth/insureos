@@ -39,6 +39,9 @@ app.use(express.json());
 // Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
+// Root Endpoint
+app.get('/', (req, res) => res.json({ message: "InsureOS API is running (v4.0)" }));
+
 // Health Check
 app.get('/health', (req, res) => res.json({ status: 'UP', timestamp: new Date() }));
 
