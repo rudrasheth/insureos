@@ -12,7 +12,7 @@ const getCustomers = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const result = await customerService.getAllCustomers(page, limit);
+        const result = await customerService.getCustomers(page, limit);
         res.json(result);
     } catch (error) {
         next(error);
