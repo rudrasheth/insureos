@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { getCustomers } from '../api/client';
 import { Link } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Phone } from 'lucide-react';
+import CallModal from '../components/CallModal';
 
 const CustomerList = () => {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeCallCustomer, setActiveCallCustomer] = useState(null);
 
     useEffect(() => {
         getCustomers({ limit: 100 })
@@ -16,6 +18,12 @@ const CustomerList = () => {
 
     return (
         <div className="max-w-7xl mx-auto">
+            {activeCallCustomer && (
+                <CallModal
+                    customer={activeCallCustomer}
+                    onClose={() => setActiveCallCustomer(null)}
+                />
+            )}
 
             {/* Editorial Header */}
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
@@ -61,13 +69,22 @@ const CustomerList = () => {
                     ) : (
                         customers.map((customer) => (
                             <div key={customer.id} className="flex flex-col md:grid md:grid-cols-12 py-6 px-6 md:px-8 hover:bg-surface/50 transition-colors cursor-pointer group items-start md:items-center gap-4 md:gap-0">
-                                <div className="md:col-span-5 w-full">
-                                    <div className="font-serif text-xl md:text-2xl text-ink-900 group-hover:text-accent transition-colors font-medium">
-                                        {customer.name}
+                                <div className="md:col-span-5 w-full flex items-center justify-between md:justify-start gap-4">
+                                    <div>
+                                        <div className="font-serif text-xl md:text-2xl text-ink-900 group-hover:text-accent transition-colors font-medium">
+                                            {customer.name}
+                                        </div>
+                                        <div className="text-[10px] text-ink-300 font-mono mt-1 uppercase tracking-wider">
+                                            REF: {customer.id.slice(0, 8)}
+                                        </div>
                                     </div>
-                                    <div className="text-[10px] text-ink-300 font-mono mt-1 uppercase tracking-wider">
-                                        REF: {customer.id.slice(0, 8)}
-                                    </div>
+                                    {/* Mobile Phone Action */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setActiveCallCustomer(customer); }}
+                                        className="md:hidden w-10 h-10 rounded-full bg-ink-900 text-white flex items-center justify-center shadow-lg active:scale-95"
+                                    >
+                                        <Phone className="w-4 h-4" />
+                                    </button>
                                 </div>
                                 <div className="md:col-span-3 text-sm text-ink-500 font-medium flex flex-col justify-center">
                                     <div className="flex items-center">
@@ -83,7 +100,16 @@ const CustomerList = () => {
                                         {customer.city}
                                     </span>
                                 </div>
-                                <div className="md:col-span-2 w-full md:text-right">
+                                <div className="md:col-span-2 w-full md:text-right flex items-center justify-between md:justify-end gap-4">
+                                    {/* Desktop Phone Action */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setActiveCallCustomer(customer); }}
+                                        className="hidden md:flex w-8 h-8 rounded-full border border-line hover:bg-ink-900 hover:text-white items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                                        title="AI Briefing Call"
+                                    >
+                                        <Phone className="w-3 h-3" />
+                                    </button>
+
                                     {(customer._count?.policies || 0) > 0 ? (
                                         <span className="inline-block px-3 py-1 bg-ink-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">
                                             Active Partnership
