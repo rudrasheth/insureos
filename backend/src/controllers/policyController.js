@@ -33,7 +33,7 @@ const getPoliciesByCustomer = async (req, res, next) => {
 const searchPolicies = async (req, res, next) => {
     try {
         const { policyType, status, city } = req.query;
-        const policies = await policyService.searchPolicies({ policyType, status, city });
+        const policies = await policyService.searchPolicies({ policyType, status, city }, req.user);
         res.json(policies);
     } catch (error) {
         next(error);
@@ -42,7 +42,7 @@ const searchPolicies = async (req, res, next) => {
 
 const getDashboardStats = async (req, res, next) => {
     try {
-        const stats = await policyService.getDashboardStats();
+        const stats = await policyService.getDashboardStats(req.user);
         res.json(stats);
     } catch (error) {
         next(error);
