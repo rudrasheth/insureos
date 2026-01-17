@@ -25,4 +25,7 @@ export const getPoliciesByCustomer = (customerId) => api.get(`/customers/${custo
 export const searchPolicies = (params) => api.get('/policies/search', { params });
 export const getDashboardStats = () => api.get('/dashboard/stats');
 
+export const calculateLoan = (data) => api.post('/loans/calculate', data);
+export const simulatePrepayment = (data) => api.post('/loans/simulate', data);
+
 export default api;

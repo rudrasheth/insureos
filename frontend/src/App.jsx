@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import LoanOptimizer from './pages/LoanOptimizer';
 
 import RequireAuth from './components/RequireAuth';
 
@@ -31,6 +32,7 @@ function App() {
           </RequireAuth>
         }>
           <Route index element={<CustomerList />} />
+          <Route path="optimizer" element={<LoanOptimizer />} />
           <Route path="add-customer" element={<AddCustomer />} />
           <Route path="add-policy" element={<AddPolicy />} />
           <Route path="search" element={<PolicySearch />} />

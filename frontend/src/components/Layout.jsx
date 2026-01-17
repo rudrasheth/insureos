@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutGrid, Search, PieChart, Users, ShieldCheck, ArrowRight, LogOut, Command, Menu, X } from 'lucide-react';
+import { LayoutGrid, Search, PieChart, Users, ShieldCheck, ArrowRight, LogOut, Command, Menu, X, Calculator } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { clsx } from 'clsx';
 
@@ -10,6 +10,7 @@ const Layout = () => {
 
     const navItems = [
         { to: '/', label: 'Overview', icon: LayoutGrid },
+        { to: '/optimizer', label: 'Loan Optimizer', icon: Calculator },
         { to: '/search', label: 'Directory', icon: Search },
         { to: '/analytics', label: 'Insights', icon: PieChart },
     ];
