@@ -78,8 +78,12 @@ const Login = () => {
                         <div className="w-14 h-14 border border-ink-900 rounded-full flex items-center justify-center mx-auto mb-6 bg-white shadow-sm">
                             <Command className="w-6 h-6 text-ink-900" strokeWidth={1.5} />
                         </div>
-                        <h1 className="font-serif text-3xl font-bold text-ink-900 italic mb-2">Insure OS</h1>
-                        <p className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-ink-500">Authorized Personnel Only</p>
+                        <h1 className="font-serif text-3xl font-bold text-ink-900 italic mb-2">Optimize</h1>
+                        <p className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-ink-500">Personal Finance for Loan Repayment</p>
+                        <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ink-50 border border-ink-100">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Optimus AI: Active</span>
+                        </div>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-6">
@@ -145,7 +149,7 @@ const Login = () => {
                     </div>
 
                     <p className="mt-8 text-center text-[10px] text-ink-400 font-medium">
-                        Secure connection via InsureOS Gateway v4.0
+                        Powered by Optimus Engine | Secure 256-bit Encryption
                     </p>
                 </div>
             </div>
