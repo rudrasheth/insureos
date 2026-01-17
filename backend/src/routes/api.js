@@ -12,6 +12,10 @@ router.post('/auth/login', login);
 router.post('/auth/forgot-password', forgotPassword);
 router.post('/auth/reset-password', resetPassword);
 
+// Information Routes (Public for now or Protected)
+router.post('/loans/calculate', require('../controllers/loanController').calculateLoan);
+router.post('/loans/simulate', require('../controllers/loanController').simulatePrepayment);
+
 // Protected Routes
 router.use(authenticateToken); // Apply to all subsequent routes
 
