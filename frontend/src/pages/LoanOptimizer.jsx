@@ -35,6 +35,7 @@ const LoanOptimizer = () => {
                 currentEmi: data.emi
             }));
         } catch (error) {
+            console.error(error);
             toast.error('Calculation Failed');
         } finally {
             setLoading(false);
@@ -56,6 +57,7 @@ const LoanOptimizer = () => {
             const { data } = await simulatePrepayment(payload);
             setSimResult(data);
         } catch (error) {
+            console.error(error);
             toast.error('Simulation Failed');
         } finally {
             setLoading(false);

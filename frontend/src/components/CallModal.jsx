@@ -168,7 +168,7 @@ const CallModal = ({ customer, onClose }) => {
                     {status === 'speaking' && (
                         <div className="flex gap-1 h-8 items-center mt-8">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className="w-1 bg-white rounded-full animate-bounce" style={{ height: Math.random() * 24 + 8 + 'px', animationDelay: i * 0.1 + 's' }}></div>
+                                <div key={i} className="w-1 bg-white rounded-full animate-bounce" style={{ height: (10 + (i * 5) % 20) + 'px', animationDelay: i * 0.1 + 's' }}></div>
                             ))}
                         </div>
                     )}
