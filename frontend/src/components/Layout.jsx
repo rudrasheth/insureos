@@ -47,7 +47,7 @@ const Layout = () => {
                         <div className="w-8 h-8 rounded-lg bg-ink-900 flex items-center justify-center text-white">
                             <Command className="w-4 h-4" />
                         </div>
-                        <h1 className="font-sans font-bold text-xl text-ink-900 tracking-tight">Optimize</h1>
+                        <h1 className="font-sans font-bold text-xl text-ink-900 tracking-tight">InsureOS</h1>
                     </div>
                     {/* Mobile Close Button */}
                     <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-ink-500 hover:text-ink-900">

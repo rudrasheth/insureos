@@ -69,8 +69,8 @@ const Signup = () => {
                         <div className="w-12 h-12 border border-ink-900 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Command className="w-6 h-6 text-ink-900" strokeWidth={1.5} />
                         </div>
-                        <h1 className="font-serif text-3xl font-bold text-ink-900 italic mb-2">Join Optimize</h1>
-                        <p className="font-sans text-xs font-bold uppercase tracking-[0.2em] text-ink-300">Automated Loan Repayment & Savings</p>
+                        <h1 className="font-serif text-3xl font-bold text-ink-900 italic mb-2">Join InsureOS</h1>
+                        <p className="font-sans text-xs font-bold uppercase tracking-[0.2em] text-ink-300">Agency Management System</p>
                     </div>
 
                     <form onSubmit={handleRegister} className="space-y-6">
