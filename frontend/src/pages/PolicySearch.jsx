@@ -7,6 +7,7 @@ const PolicySearch = () => {
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { handleSearch(); }, []); // Init load
 
     const handleSearch = async () => {
@@ -24,6 +25,7 @@ const PolicySearch = () => {
     useEffect(() => {
         const timer = setTimeout(() => { handleSearch(); }, 400);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters]);
 
     return (

@@ -70,10 +70,11 @@ const CallModal = ({ customer, onClose }) => {
             }
         };
 
+        const synthRef = synth.current;
         startCall();
 
         return () => {
-            synth.current.cancel(); // Stop talking if closed
+            synthRef.cancel(); // Stop talking if closed
         };
     }, [customer]);
 
