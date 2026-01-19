@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, Zap, ArrowRight, TrendingDown, Clock, DollarSign } from 'lucide-react';
+import { Calculator, Zap, ArrowRight, TrendingDown, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { calculateLoan, simulatePrepayment } from '../api/client';
 import { clsx } from 'clsx';

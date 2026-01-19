@@ -1,4 +1,4 @@
-const Policy = require('../models/Policy');
+makconst Policy = require('../models/Policy');
 const Customer = require('../models/Customer');
 
 const createPolicy = async (data) => {
