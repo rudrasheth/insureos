@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutGrid, Search, PieChart, Users, ShieldCheck, ArrowRight, LogOut, Command, Menu, X, Calculator } from 'lucide-react';
+import { LayoutGrid, Search, PieChart, Users, ShieldCheck, ArrowRight, LogOut, Command, Menu, X, Calculator, Zap } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { clsx } from 'clsx';
 
