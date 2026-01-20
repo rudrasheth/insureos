@@ -146,81 +146,89 @@ export const googleAuthCallback = httpAction(async (_ctx: any, request: Request)
     console.log(`[OAuth] Decoded ID token: email=${email}, googleUserId=${googleUserId}`);
 
     // Step 2c: Find or create user
-    let user = null;
-    const { data: existingUser, error: lookupError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("email", email)
-      .single();
+    // Step 2c: Find or create user (RAW FETCH FALLBACK)
+    // We use direct fetch to avoid "tunnel" errors in Edge Runtime
+    const userUrl = `${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=*`;
+    const userHeaders = {
+      "apikey": SUPABASE_SERVICE_ROLE_KEY!,
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation" // Important for inserts to return data
+    };
 
-    if (lookupError && lookupError.code !== "PGRST116") {
-      throw new Error(`Database lookup failed: ${lookupError.message}`);
+    let user = null;
+    const lookupRes = await fetch(userUrl, {
+      method: "GET",
+      headers: userHeaders,
+    });
+
+    if (!lookupRes.ok) {
+      throw new Error(`User lookup failed: ${await lookupRes.text()}`);
     }
 
-    if (existingUser) {
-      user = existingUser;
-      console.log(`[OAuth] User already exists: ${user.id}`);
-    } else {
-      const { data: newUser, error: createError } = await supabase
-        .from("users")
-        .insert([{ email }])
-        .select()
-        .single();
+    const existingUsers = await lookupRes.json();
 
-      if (createError) {
-        throw new Error(`Failed to create user: ${createError.message}`);
+    if (existingUsers && existingUsers.length > 0) {
+      user = existingUsers[0];
+      console.log(`[OAuth] User already exists (via fetch): ${user.id}`);
+    } else {
+      // Create new user
+      const createRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+        method: "POST",
+        headers: userHeaders,
+        body: JSON.stringify({ email }),
+      });
+
+      if (!createRes.ok) {
+        throw new Error(`Create user failed: ${await createRes.text()}`);
       }
 
-      user = newUser;
-      console.log(`[OAuth] Created new user: ${user.id}`);
+      const createdUsers = await createRes.json();
+      user = createdUsers[0];
+      console.log(`[OAuth] Created new user (via fetch): ${user.id}`);
     }
 
-    // Step 2d: Upsert auth provider with tokens
+    // Step 2d: Upsert auth provider with tokens (RAW FETCH)
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+    const providerRes = await fetch(`${SUPABASE_URL}/rest/v1/auth_providers`, {
+      method: "POST",
+      headers: { ...userHeaders, "Prefer": "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify({
+        user_id: user.id,
+        provider: "google",
+        provider_user_id: googleUserId,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token || null,
+        expires_at: expiresAt.toISOString(),
+      }),
+    });
 
-    const { data: provider, error: providerError } = await supabase
-      .from("auth_providers")
-      .upsert(
-        {
-          user_id: user.id,
-          provider: "google",
-          provider_user_id: googleUserId,
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token || null,
-          expires_at: expiresAt.toISOString(),
-        },
-        { onConflict: "provider,provider_user_id" }
-      )
-      .select()
-      .single();
-
-    if (providerError) {
-      throw new Error(`Failed to upsert auth provider: ${providerError.message}`);
+    if (!providerRes.ok) {
+      throw new Error(`Failed to upsert auth provider: ${await providerRes.text()}`);
     }
+    console.log(`[OAuth] Upserted auth provider (via fetch)`);
 
-    console.log(`[OAuth] Upserted auth provider for user: ${user.id}, expires at: ${expiresAt.toISOString()}`);
-
-    // Step 2e: Create session
+    // Step 2e: Create session (RAW FETCH)
     const sessionToken = generateSessionToken();
     const sessionExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const { data: session, error: sessionError } = await supabase
-      .from("sessions")
-      .insert([
-        {
-          user_id: user.id,
-          session_token: sessionToken,
-          expires_at: sessionExpiresAt.toISOString(),
-        },
-      ])
-      .select()
-      .single();
+    const sessionRes = await fetch(`${SUPABASE_URL}/rest/v1/sessions`, {
+      method: "POST",
+      headers: userHeaders,
+      body: JSON.stringify({
+        user_id: user.id,
+        session_token: sessionToken,
+        expires_at: sessionExpiresAt.toISOString(),
+      }),
+    });
 
-    if (sessionError) {
-      throw new Error(`Failed to create session: ${sessionError.message}`);
+    if (!sessionRes.ok) {
+      throw new Error(`Failed to create session: ${await sessionRes.text()}`);
     }
+    const createdSessions = (await sessionRes.json()) as any[];
+    const session = createdSessions[0];
 
-    console.log(`[OAuth] Created session: ${session.id}, expires in 7 days`);
+    console.log(`[OAuth] Created session (via fetch): ${session.id}, expires in 7 days`);
 
     // Step 2f: Redirect to frontend with session token
     return new Response(null, {

@@ -73,5 +73,9 @@ export function getSupabaseClient(
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: {
+      // Explicitly bind fetch to globalThis for Convex runtime compatibility
+      fetch: (url, options) => fetch(url, options),
+    },
   });
 }
