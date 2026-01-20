@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, Loader2, Mail, ShieldAlert, BarChart3, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useMutation, useAction } from "convex/react";
-import { api } from "../../../insurance-agent/insurance-agent-backend/convex/_generated/api";
+import { api } from "../convex/_generated/api";
 
 const AgentInterface = () => {
     const [messages, setMessages] = useState([
