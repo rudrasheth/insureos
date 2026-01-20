@@ -11,6 +11,7 @@ const Layout = () => {
     const navItems = [
         { to: '/', label: 'Overview', icon: LayoutGrid },
         { to: '/optimizer', label: 'Loan Optimizer', icon: Calculator },
+        { to: '/agent', label: 'AI Agent', icon: Zap },
         { to: '/search', label: 'Directory', icon: Search },
         { to: '/analytics', label: 'Insights', icon: PieChart },
     ];

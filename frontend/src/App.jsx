@@ -11,6 +11,11 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import LoanOptimizer from './pages/LoanOptimizer';
+import AgentInterface from './pages/AgentInterface';
+import { ConvexProvider, ConvexReactClient } from "convex/react";
+
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
+
 
 import RequireAuth from './components/RequireAuth';
 
@@ -19,26 +24,29 @@ import { Toaster } from 'react-hot-toast';
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-center" reverseOrder={false} />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+      <ConvexProvider client={convex}>
+        <Toaster position="top-center" reverseOrder={false} />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
-        <Route path="/" element={
-          <RequireAuth>
-            <Layout />
-          </RequireAuth>
-        }>
-          <Route index element={<CustomerList />} />
-          <Route path="optimizer" element={<LoanOptimizer />} />
-          <Route path="add-customer" element={<AddCustomer />} />
-          <Route path="add-policy" element={<AddPolicy />} />
-          <Route path="search" element={<PolicySearch />} />
-          <Route path="analytics" element={<Analytics />} />
-        </Route>
-      </Routes>
+          <Route path="/" element={
+            <RequireAuth>
+              <Layout />
+            </RequireAuth>
+          }>
+            <Route index element={<CustomerList />} />
+            <Route path="optimizer" element={<LoanOptimizer />} />
+            <Route path="agent" element={<AgentInterface />} />
+            <Route path="add-customer" element={<AddCustomer />} />
+            <Route path="add-policy" element={<AddPolicy />} />
+            <Route path="search" element={<PolicySearch />} />
+            <Route path="analytics" element={<Analytics />} />
+          </Route>
+        </Routes>
+      </ConvexProvider>
     </BrowserRouter>
   );
 }
