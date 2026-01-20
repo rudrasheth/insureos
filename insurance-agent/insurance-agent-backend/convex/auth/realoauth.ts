@@ -5,7 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = "https://greedy-nightingale-153.convex.site/auth/google/callback";
+const REDIRECT_URI = "https://third-fly-393.convex.site/auth/google/callback";
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("Missing required Supabase environment variables");
@@ -226,7 +226,7 @@ export const googleAuthCallback = httpAction(async (_ctx: any, request: Request)
     return new Response(null, {
       status: 302,
       headers: {
-        "Location": `http://localhost:5173?token=${sessionToken}`,
+        "Location": `https://insureos-wheat.vercel.app/agent?auth_token=${sessionToken}&sync=success`,
       },
     });
   } catch (error) {

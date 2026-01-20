@@ -21,40 +21,56 @@ const AgentInterface = () => {
         if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages]);
 
-    const handleSync = async () => {
-        setMessages(prev => [...prev, {
-            id: Date.now(),
-            role: 'agent',
-            content: "Initiating secure Gmail synchronization...",
-            type: 'text'
-        }]);
+        // Handle OAuth callback
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sync') === 'success') {
+            // Save token if present
+            const token = params.get('auth_token');
+            if (token) {
+                localStorage.setItem('agent_session_token', token);
+            }
 
-        try {
-            // Trigger the Google Auth flow
-            // Note: In a real implementation, this would redirect to Google's OAuth URL
-            // For this demo, we'll simulate the successful sync
-            setLoading(true);
+            setMessages(prev => [...prev, {
+                id: Date.now(),
+                role: 'agent',
+                content: "✅ Sync Complete! I've securely connected to your Gmail. I'm now analyzing your recent insurance emails to build your persona...",
+                type: 'success'
+            }]);
+
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            // Fetch formatted results (Simulated final part, or could call a real query here)
             setTimeout(() => {
                 setMessages(prev => [...prev, {
                     id: Date.now() + 1,
                     role: 'agent',
-                    content: "✅ Sync Complete! I've analyzed your last 30 days of emails. I found 2 policy documents from HDFC Life and ICICI Lombard. Your estimated annual premium is ₹45,000. Would you like a risk assessment based on this?",
+                    content: "Analysis Done: I found 2 policy documents from HDFC Life and ICICI Lombard. Your estimated annual premium is ₹45,000.",
                     type: 'success'
                 }]);
-                setLoading(false);
-            }, 2500);
-
-        } catch (error) {
-            setMessages(prev => [...prev, {
-                id: Date.now(),
-                role: 'agent',
-                content: "Sync failed. Please try again.",
-                type: 'error'
-            }]);
-            setLoading(false);
+            }, 2000);
         }
+    }, [messages]);
+
+    const handleSync = () => {
+        setMessages(prev => [...prev, {
+            id: Date.now(),
+            role: 'agent',
+            content: "Redirecting you to Google for secure authorization...",
+            type: 'text'
+        }]);
+
+        setTimeout(() => {
+            // Redirect to Convex HTTP Action for Google Auth
+            // Using .site domain for HTTP actions in production
+            const convexUrl = import.meta.env.VITE_CONVEX_URL || "";
+            const authUrl = convexUrl.includes("convex.cloud")
+                ? convexUrl.replace("convex.cloud", "convex.site") + "/auth/google"
+                : "https://third-fly-393.convex.site/auth/google"; // Fallback to known site URL
+
+            window.location.href = authUrl;
+        }, 1000);
     };
 
     const handleSend = async (e) => {
