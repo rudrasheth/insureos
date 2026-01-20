@@ -148,18 +148,24 @@ export const googleAuthCallback = httpAction(async (_ctx: any, request: Request)
     // Step 2c: Find or create user
     // Step 2c: Find or create user (RAW FETCH FALLBACK)
     // We use direct fetch to avoid "tunnel" errors in Edge Runtime
-    const userUrl = `${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=*`;
+    // Attempting to bypass tunnel issue by removing complex query params first or using POST vs GET
+
+    // Simplest possible fetch
+    const userUrl = `${SUPABASE_URL}/rest/v1/users?email=eq.${email}`; // Removed select=* to simplify URL
     const userHeaders = {
       "apikey": SUPABASE_SERVICE_ROLE_KEY!,
       "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      "Prefer": "return=representation" // Important for inserts to return data
+      // "Content-Type": "application/json", // Not needed for GET
+      // "Prefer": "return=representation"
     };
 
     let user = null;
+    console.log(`[OAuth] Fetching user from: ${userUrl}`);
+
     const lookupRes = await fetch(userUrl, {
       method: "GET",
       headers: userHeaders,
+      cache: "no-store"
     });
 
     if (!lookupRes.ok) {
