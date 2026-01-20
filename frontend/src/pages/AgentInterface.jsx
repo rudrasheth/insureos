@@ -23,6 +23,40 @@ const AgentInterface = () => {
         }
     }, [messages]);
 
+    const handleSync = async () => {
+        setMessages(prev => [...prev, {
+            id: Date.now(),
+            role: 'agent',
+            content: "Initiating secure Gmail synchronization...",
+            type: 'text'
+        }]);
+
+        try {
+            // Trigger the Google Auth flow
+            // Note: In a real implementation, this would redirect to Google's OAuth URL
+            // For this demo, we'll simulate the successful sync
+            setLoading(true);
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    role: 'agent',
+                    content: "✅ Sync Complete! I've analyzed your last 30 days of emails. I found 2 policy documents from HDFC Life and ICICI Lombard. Your estimated annual premium is ₹45,000. Would you like a risk assessment based on this?",
+                    type: 'success'
+                }]);
+                setLoading(false);
+            }, 2500);
+
+        } catch (error) {
+            setMessages(prev => [...prev, {
+                id: Date.now(),
+                role: 'agent',
+                content: "Sync failed. Please try again.",
+                type: 'error'
+            }]);
+            setLoading(false);
+        }
+    };
+
     const handleSend = async (e) => {
         e.preventDefault();
         if (!input.trim()) return;
@@ -79,9 +113,12 @@ const AgentInterface = () => {
 
                 {/* Capabilities Chips */}
                 <div className="hidden md:flex gap-2">
-                    <div className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm">
+                    <button
+                        onClick={handleSync}
+                        className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all cursor-pointer"
+                    >
                         <Mail className="w-3 h-3" /> Email Sync
-                    </div>
+                    </button>
                     <div className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm">
                         <ShieldAlert className="w-3 h-3" /> Risk Analysis
                     </div>
