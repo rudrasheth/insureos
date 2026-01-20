@@ -73,9 +73,5 @@ export function getSupabaseClient(
       autoRefreshToken: false,
       persistSession: false,
     },
-    global: {
-      // Use native fetch in Node.js environment
-      fetch: fetch.bind(globalThis),
-    },
   });
 }
