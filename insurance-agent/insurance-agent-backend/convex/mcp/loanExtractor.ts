@@ -60,6 +60,19 @@ export const loanExtractorAction = internalAction(
             .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
             .join("\n\n");
 
+        // Helper to clean numbers
+        const parseNum = (val: any) => {
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') {
+                // Remove currency symbols, commas, percent
+                // e.g. "Rs. 1,00,000" -> "100000"
+                const cleaned = val.replace(/,/g, '').replace(/[^0-9.]/g, '');
+                const num = parseFloat(cleaned);
+                return isNaN(num) ? null : num;
+            }
+            return null;
+        };
+
         const prompt = `Analyze these emails and extract loan repayment information.
 Look for:
 - Loan Account Statements
@@ -68,11 +81,9 @@ Look for:
 - Home/Car/Personal Loan details
 
 IMPORTANT:
-1. Extract DATA even if the email is forwarded or sent by a personal name (e.g. "Ishita Sheth").
-2. Ignore purely promotional "Pre-approved Offers" unless they contain existing loan details.
+1. Extract DATA even if the email is forwarded or sent by a personal name.
+2. EXTRACT NUMBERS aggressively. If formatting is messy (e.g. "Rs 10,000"), return it as a STRING.
 3. If outstanding balance or EMI is mentioned, capture it.
-4. EXTRACT NUMBERS CAREFULLY: Remove "Rs.", "INR", "$", "," and other non-numeric characters. Return ONLY raw numbers (e.g. 16701).
-5. Look for terms like "ROI", "Rate", "Int", "Installment", "Principle".
 
 Emails:
 ${emailContext}
@@ -83,12 +94,12 @@ For each loan found, extract:
     {
       "loan_type": "home|personal|car|education|other",
       "lender_name": "string",
-      "principal_amount": number or null,
-      "interest_rate": number or null,
-      "emi_amount": number or null,
-      "tenure_months": number or null,
-      "remaining_tenure_months": number or null,
-      "outstanding_balance": number or null
+      "principal_amount": "number or string or null",
+      "interest_rate": "number or string or null",
+      "emi_amount": "number or string or null",
+      "tenure_months": "number or string or null",
+      "remaining_tenure_months": "number or string or null",
+      "outstanding_balance": "number or string or null"
     }
   ]
 }
@@ -127,27 +138,46 @@ If no loan repayment information found, return empty array.`;
 
             const loans = result.loans || [];
 
-            // Save loans to database
+            // Save loans to database with Deduplication
             if (loans.length > 0) {
-                const loansToInsert = loans.map((loan: any) => ({
-                    user_id: userId,
-                    email_id: emailId || emails[0].id,
-                    loan_type: loan.loan_type,
-                    lender_name: loan.lender_name,
-                    principal_amount: loan.principal_amount,
-                    interest_rate: loan.interest_rate,
-                    emi_amount: loan.emi_amount,
-                    tenure_months: loan.tenure_months,
-                    remaining_tenure_months: loan.remaining_tenure_months,
-                    outstanding_balance: loan.outstanding_balance,
-                }));
-
-                const { error: insertError } = await supabase
+                // Fetch existing loans to de-duplicate
+                const { data: existingLoans } = await supabase
                     .from("loans")
-                    .insert(loansToInsert);
+                    .select("lender_name, loan_type, emi_amount")
+                    .eq("user_id", userId);
 
-                if (insertError) {
-                    console.error("Failed to save loans:", insertError);
+                const loansToInsert = loans
+                    .map((loan: any) => ({
+                        user_id: userId,
+                        email_id: emailId || emails[0].id,
+                        loan_type: (loan.loan_type || 'other').toLowerCase(),
+                        lender_name: loan.lender_name || 'Unknown Lender',
+                        principal_amount: parseNum(loan.principal_amount),
+                        interest_rate: parseNum(loan.interest_rate),
+                        emi_amount: parseNum(loan.emi_amount),
+                        tenure_months: parseNum(loan.tenure_months),
+                        remaining_tenure_months: parseNum(loan.remaining_tenure_months),
+                        outstanding_balance: parseNum(loan.outstanding_balance),
+                    }))
+                    .filter((newLoan: any) => {
+                        // Check if duplicate
+                        const isDuplicate = existingLoans?.some((existing: any) =>
+                            existing.lender_name === newLoan.lender_name &&
+                            existing.loan_type === newLoan.loan_type &&
+                            // If EMI matches or is very close, assume duplicate
+                            (Math.abs((existing.emi_amount || 0) - (newLoan.emi_amount || 0)) < 10)
+                        );
+                        return !isDuplicate;
+                    });
+
+                if (loansToInsert.length > 0) {
+                    const { error: insertError } = await supabase
+                        .from("loans")
+                        .insert(loansToInsert);
+
+                    if (insertError) {
+                        console.error("Failed to save loans:", insertError);
+                    }
                 }
             }
 
