@@ -166,7 +166,7 @@ const AgentInterface = () => {
                         <h2 className="font-serif text-lg font-bold text-ink-900">Agent Insure</h2>
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-xs font-bold uppercase tracking-wider text-ink-400">Gemini 2.5 Flash Connected</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-ink-400">Llama 3 (Groq) Connected</span>
                         </div>
                     </div>
                 </div>
