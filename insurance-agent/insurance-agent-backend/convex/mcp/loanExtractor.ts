@@ -26,18 +26,17 @@ export const loanExtractorAction = internalAction(
 
         const supabase = getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-        // Fetch loan-related emails
+        // Fetch ALL emails (not just insurance category)
         let query = supabase
             .from("emails")
             .select("*")
             .eq("user_id", userId)
-            .eq("category", "insurance") // Will update to include loan category
             .order("received_at", { ascending: false });
 
         if (emailId) {
             query = query.eq("id", emailId).limit(1);
         } else {
-            query = query.limit(10); // Analyze recent 10 emails
+            query = query.limit(20); // Analyze recent 20 emails
         }
 
         const { data: emails, error } = await query;
