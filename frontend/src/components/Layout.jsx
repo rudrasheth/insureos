@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutGrid, Search, PieChart, Users, ShieldCheck, ArrowRight, LogOut, Command, Menu, X, Calculator, Zap } from 'lucide-react';
+import { LogOut, Command, Menu, X, Calculator, Zap } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { clsx } from 'clsx';
 
@@ -9,16 +9,8 @@ const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const navItems = [
-        { to: '/', label: 'Overview', icon: LayoutGrid },
-        { to: '/optimizer', label: 'Loan Optimizer', icon: Calculator },
         { to: '/agent', label: 'AI Agent', icon: Zap },
-        { to: '/search', label: 'Directory', icon: Search },
-        { to: '/analytics', label: 'Insights', icon: PieChart },
-    ];
-
-    const quickActions = [
-        { to: '/add-customer', label: 'New Client', icon: Users },
-        { to: '/add-policy', label: 'Bind Policy', icon: ShieldCheck },
+        { to: '/optimizer', label: 'Loan Optimizer', icon: Calculator },
     ];
 
     return (
@@ -88,36 +80,6 @@ const Layout = () => {
                                             {isActive && <div className="w-1.5 h-1.5 bg-accent rounded-full" />}
                                         </>
                                     )}
-                                </NavLink>
-                            ))}
-                        </nav>
-                    </div>
-
-                    {/* Quick Ops */}
-                    <div>
-                        <div className="text-[11px] font-sans font-bold text-ink-300 uppercase tracking-widest mb-6 border-b border-line pb-2 mx-2">
-                            Operations
-                        </div>
-                        <nav className="space-y-2">
-                            {quickActions.map((item) => (
-                                <NavLink
-                                    key={item.to}
-                                    to={item.to}
-                                    onClick={() => setIsSidebarOpen(false)}
-                                    className={({ isActive }) =>
-                                        clsx(
-                                            'flex items-center justify-between px-4 py-3 rounded-sm transition-all duration-300 border border-transparent',
-                                            isActive
-                                                ? 'border-line bg-white'
-                                                : 'text-ink-900 hover:border-line hover:bg-white'
-                                        )
-                                    }
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <item.icon className="w-4 h-4 text-ink-900" strokeWidth={1.5} />
-                                        <span className="font-medium text-lg">{item.label}</span>
-                                    </div>
-                                    <ArrowRight className="w-3 h-3 text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </NavLink>
                             ))}
                         </nav>

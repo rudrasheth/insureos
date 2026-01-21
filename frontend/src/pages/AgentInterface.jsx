@@ -227,10 +227,20 @@ const AgentInterface = () => {
                 userEmail
             });
 
+            // 3. Share Summary via WhatsApp
+            const summaryText = messages
+                .filter(m => m.role === 'agent')
+                .map(m => m.content)
+                .join("\n\n")
+                .slice(0, 1000); // Truncate for URL limits
+
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(`*InsureOS Report Summary*\n\n${summaryText}\n\n_Full report emailed to you._`)}`;
+            window.open(waUrl, '_blank');
+
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'agent',
-                content: `✅ Report downloaded and sent to ${userEmail}!`,
+                content: `✅ Report sent to ${userEmail} and WhatsApp share opened!`,
                 type: 'success'
             }]);
 

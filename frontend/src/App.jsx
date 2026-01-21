@@ -37,7 +37,7 @@ function App() {
               <Layout />
             </RequireAuth>
           }>
-            <Route index element={<CustomerList />} />
+            <Route index element={<Navigate to="/agent" replace />} />
             <Route path="optimizer" element={<LoanOptimizer />} />
             <Route path="agent" element={<AgentInterface />} />
             <Route path="add-customer" element={<AddCustomer />} />
