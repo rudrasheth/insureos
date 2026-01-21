@@ -15,9 +15,10 @@ const Login = () => {
         try {
             const { data } = await login(formData);
             localStorage.setItem('token', data.token);
+            localStorage.setItem('agent_session_token', data.token); // Sync for Agent
             localStorage.setItem('user', JSON.stringify(data.user)); // Store user info
             toast.success('System Access Granted');
-            navigate('/');
+            navigate('/agent');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Invalid credentials');
         } finally {

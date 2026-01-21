@@ -32,6 +32,25 @@ const SPAM_SUBJECT_KEYWORDS = [
   "cashback",
 ];
 
+// Keywords to STRICTLY EXCLUDE (Stock Market / Trading)
+const EXCLUDED_KEYWORDS = [
+  "nse",
+  "bse",
+  "nsdl",
+  "cdsl",
+  "demat",
+  "contract note",
+  "trade confirmation",
+  "buy order",
+  "sell order",
+  "equity",
+  "derivative",
+  "f&o",
+  "mutual fund statement", // Unless it's explicitly insurance
+  "folio",
+  "nav",
+];
+
 // Deterministic classification scoring rules
 const POLICY_NUMBER_REGEX = /\b[A-Z]{2,}\d{6,}\b/; // Policy number format
 const CLAIM_LIFECYCLE_TERMS = [
@@ -104,6 +123,12 @@ export function isSpamEmail(email: EmailInput): boolean {
 
   if (SPAM_SENDER_TOKENS.some((token) => sender.includes(token))) return true;
   if (SPAM_SUBJECT_KEYWORDS.some((kw) => subject.includes(kw))) return true;
+
+  // Strict Exclusion for Stock Market / Trading emails
+  if (EXCLUDED_KEYWORDS.some((kw) => subject.includes(kw) || snippet.includes(kw))) {
+    console.log(`[EmailFilter] Excluded as financial/trading (found: ${subject})`);
+    return true; // Treated as spam/excluded for insurance purposes
+  }
 
   // Promotional language heuristic: many exclamation marks or all caps words
   const promoScore = [subject, snippet].filter(Boolean).join(" ");

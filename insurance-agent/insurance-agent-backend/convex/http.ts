@@ -5,7 +5,13 @@ import { healthCheck } from "./endpoints/health";
 
 import { testConnection, createTestUser, getUsers } from "./endpoints/database";
 import { googleAuthStart, googleAuthCallback } from "./auth/realoauth";
+import { login } from "./auth/login";
+import { register } from "./auth/register";
 import { validateSession, getMe } from "./auth/oauth";
+
+// ... existing code ...
+
+
 import { gmailSyncReal } from "./gmail/syncreal";
 import { gmailSyncDebug } from "./gmail/debug";
 import { getEmails, getEmailById, getEmailStats } from "./gmail/getemails";
@@ -400,7 +406,31 @@ http.route({
   handler: createTestUser,
 });
 
-// Auth endpoints
+// Auth email/password endpoints
+http.route({
+  path: "/auth/login",
+  method: "POST",
+  handler: login,
+});
+
+http.route({
+  path: "/auth/login",
+  method: "OPTIONS",
+  handler: login,
+});
+
+http.route({
+  path: "/auth/register",
+  method: "POST",
+  handler: register,
+});
+
+http.route({
+  path: "/auth/register",
+  method: "OPTIONS",
+  handler: register,
+});
+
 http.route({
   path: "/auth/google",
   method: "GET",
