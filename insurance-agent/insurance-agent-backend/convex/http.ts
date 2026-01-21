@@ -631,12 +631,22 @@ http.route({
     const sessionToken = authHeader.substring(7);
     const user_id = await validateSessionAndGetUserId(sessionToken);
 
-    const result = await ctx.runAction(internal.mcp.loanExtractor.loanExtractorAction, { userId: user_id });
+    try {
+      const result = await ctx.runAction(internal.mcp.loanExtractor.loanExtractorAction, { userId: user_id });
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-    });
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    } catch (error: any) {
+      console.error("Loan extraction error:", error);
+      // Extract useful message from Convex error
+      const msg = error.message || String(error);
+      return new Response(JSON.stringify({ error: "Extraction failed", details: msg }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
   }),
 });
 
