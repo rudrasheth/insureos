@@ -41,4 +41,8 @@ export const getDashboardStats = () => api.get('/dashboard/stats');
 export const calculateLoan = (data) => api.post('/loans/calculate', data);
 export const simulatePrepayment = (data) => api.post('/loans/simulate', data);
 
+// Loan detection from emails
+export const extractLoans = () => api.post('/loans/extract');
+export const getLoans = () => api.get('/loans');
+
 export default api;

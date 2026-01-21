@@ -90,6 +90,26 @@ CREATE TABLE IF NOT EXISTS chat_history (
 CREATE INDEX IF NOT EXISTS idx_chat_history_user_id ON chat_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_history_created_at ON chat_history(created_at);
 
+-- Loans Table (extracted from emails)
+CREATE TABLE IF NOT EXISTS loans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email_id UUID REFERENCES emails(id) ON DELETE SET NULL,
+    loan_type TEXT, -- e.g., 'home', 'personal', 'car'
+    lender_name TEXT,
+    principal_amount NUMERIC,
+    interest_rate NUMERIC,
+    emi_amount NUMERIC,
+    tenure_months INTEGER,
+    remaining_tenure_months INTEGER,
+    outstanding_balance NUMERIC,
+    detected_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_loans_user_id ON loans(user_id);
+CREATE INDEX IF NOT EXISTS idx_loans_email_id ON loans(email_id);
+
 -- Agent Logs Table
 CREATE TABLE IF NOT EXISTS agent_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

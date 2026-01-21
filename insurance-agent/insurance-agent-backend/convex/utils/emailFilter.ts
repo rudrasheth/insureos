@@ -101,7 +101,24 @@ const CATEGORY_RULES: Record<string, string[]> = {
   claim: ["claim", "settlement", "approval", "denied", "processing"],
   new_policy: ["issued", "welcome", "policy document", "congratulations"],
   payment: ["premium received", "receipt", "payment confirmed", "transaction"],
+  loan_repayment: ["emi", "loan statement", "repayment", "outstanding", "principal", "tenure", "installment"],
 };
+
+// Keywords for loan REPAYMENT (not loan offers)
+const LOAN_REPAYMENT_KEYWORDS = [
+  "emi due",
+  "loan statement",
+  "repayment schedule",
+  "outstanding balance",
+  "principal outstanding",
+  "emi paid",
+  "loan account",
+  "home loan statement",
+  "personal loan statement",
+  "car loan statement",
+  "auto-debit",
+  "installment",
+];
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 

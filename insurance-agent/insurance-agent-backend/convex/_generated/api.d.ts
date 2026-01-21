@@ -31,6 +31,7 @@ import type * as insurance_summary from "../insurance/summary.js";
 import type * as mcp_conversationSimulator from "../mcp/conversationSimulator.js";
 import type * as mcp_getEmailsAction from "../mcp/getEmailsAction.js";
 import type * as mcp_index from "../mcp/index.js";
+import type * as mcp_loanExtractor from "../mcp/loanExtractor.js";
 import type * as mcp_personaAction from "../mcp/personaAction.js";
 import type * as mcp_personaGenerator from "../mcp/personaGenerator.js";
 import type * as mcp_policyAnalyzer from "../mcp/policyAnalyzer.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/conversationSimulator": typeof mcp_conversationSimulator;
   "mcp/getEmailsAction": typeof mcp_getEmailsAction;
   "mcp/index": typeof mcp_index;
+  "mcp/loanExtractor": typeof mcp_loanExtractor;
   "mcp/personaAction": typeof mcp_personaAction;
   "mcp/personaGenerator": typeof mcp_personaGenerator;
   "mcp/policyAnalyzer": typeof mcp_policyAnalyzer;

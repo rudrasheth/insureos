@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Calculator, Zap, ArrowRight, TrendingDown, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calculator, Zap, ArrowRight, TrendingDown, Clock, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { calculateLoan, simulatePrepayment } from '../api/client';
+import { calculateLoan, simulatePrepayment, getLoans, extractLoans } from '../api/client';
 import { clsx } from 'clsx';
 
 const LoanOptimizer = () => {
@@ -14,6 +14,47 @@ const LoanOptimizer = () => {
     const [calcResult, setCalcResult] = useState(null);
     const [simResult, setSimResult] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [detectedLoans, setDetectedLoans] = useState([]);
+    const [loadingLoans, setLoadingLoans] = useState(false);
+
+    useEffect(() => {
+        fetchDetectedLoans();
+    }, []);
+
+    const fetchDetectedLoans = async () => {
+        setLoadingLoans(true);
+        try {
+            const { data } = await getLoans();
+            setDetectedLoans(data.loans || []);
+
+            // Auto-fill first loan if available
+            if (data.loans && data.loans.length > 0) {
+                const loan = data.loans[0];
+                setCalcData({
+                    principal: loan.outstanding_balance || loan.principal_amount || '',
+                    rate: loan.interest_rate || '',
+                    tenureMonths: loan.remaining_tenure_months || loan.tenure_months || ''
+                });
+            }
+        } catch (error) {
+            console.error('Failed to fetch loans:', error);
+        } finally {
+            setLoadingLoans(false);
+        }
+    };
+
+    const handleExtractLoans = async () => {
+        setLoadingLoans(true);
+        try {
+            await extractLoans();
+            toast.success('Analyzing your emails for loan information...');
+            setTimeout(() => fetchDetectedLoans(), 2000);
+        } catch (error) {
+            toast.error('Failed to extract loans');
+        } finally {
+            setLoadingLoans(false);
+        }
+    };
 
     const handleCalculate = async (e) => {
         e.preventDefault();
@@ -71,7 +112,24 @@ const LoanOptimizer = () => {
                     <h1 className="font-serif text-3xl font-bold text-ink-900 italic mb-2">Loan Optimizer</h1>
                     <p className="font-sans text-xs font-bold uppercase tracking-[0.2em] text-ink-500">Optimus Engine v1.0</p>
                 </div>
+                <button
+                    onClick={handleExtractLoans}
+                    disabled={loadingLoans}
+                    className="px-4 py-2 bg-accent text-ink-900 rounded-md font-bold text-xs uppercase tracking-wider hover:bg-accent-dark transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                    <RefreshCw className={clsx("w-4 h-4", loadingLoans && "animate-spin")} />
+                    {loadingLoans ? 'Scanning...' : 'Scan Emails'}
+                </button>
             </div>
+
+            {/* Detected Loans Banner */}
+            {detectedLoans.length > 0 && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm font-bold text-green-900">
+                        ✓ {detectedLoans.length} loan(s) detected from your emails
+                    </p>
+                </div>
+            )}
 
             {/* Tabs */}
             <div className="flex gap-4 mb-8 border-b border-line pb-1">

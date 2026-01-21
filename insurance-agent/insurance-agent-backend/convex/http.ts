@@ -604,4 +604,90 @@ http.route({
   handler: mcpReport,
 });
 
+// Loan endpoints
+http.route({
+  path: "/loans/extract",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+    }
+
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
+    const sessionToken = authHeader.substring(7);
+    const user_id = await validateSessionAndGetUserId(sessionToken);
+
+    const result = await ctx.runAction(internal.mcp.loanExtractor.loanExtractorAction, { userId: user_id });
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }),
+});
+
+http.route({
+  path: "/loans",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+    }
+
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
+    const sessionToken = authHeader.substring(7);
+    const user_id = await validateSessionAndGetUserId(sessionToken);
+
+    const SUPABASE_URL = process.env.SUPABASE_URL!;
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase = (await import("./utils/supabase")).getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: loans, error } = await supabase
+      .from("loans")
+      .select("*")
+      .eq("user_id", user_id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
+    return new Response(JSON.stringify({ loans: loans || [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }),
+});
+
 export default http;
