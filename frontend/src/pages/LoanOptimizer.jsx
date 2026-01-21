@@ -65,8 +65,9 @@ const LoanOptimizer = () => {
             }
         } catch (error) {
             console.error('Extract error:', error);
-            const msg = error.response?.data?.error || 'Scan failed. Ensure you are logged in with Google.';
-            toast.error(msg, { id: 'loan-scan' });
+            const data = error.response?.data;
+            const msg = data?.details || data?.error || 'Scan failed. Ensure you are logged in with Google.';
+            toast.error(msg, { id: 'loan-scan', duration: 5000 });
         } finally {
             setLoadingLoans(false);
         }
