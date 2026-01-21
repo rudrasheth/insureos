@@ -86,22 +86,24 @@ export const personaGeneratorAction = internalAction(
       throw new Error("Groq API key not configured");
     }
 
-    const prompt = `Analyze this user's insurance email history and generate a detailed persona profile.
-
-Email History:
-${emailSummary}
-
-Respond with JSON:
-{
-  "profile_name": "string (e.g., 'Conservative Investor', 'Active Manager')",
-  "insurance_types": ["list of inferred insurance types"],
-  "estimated_age_group": "string",
-  "risk_profile": "conservative|moderate|aggressive",
-  "engagement_level": "low|medium|high",
-  "key_concerns": ["list of inferred concerns"],
-  "estimated_annual_premium": "number or null",
-  "policy_count": "estimated count"
-}`;
+    const prompt = `Analyze this user's insurance email history and generate a detailed financial persona.
+    
+    Email History:
+    ${emailSummary}
+    
+    Respond with JSON:
+    {
+      "profile_name": "string (e.g., 'Under-insured Parent', 'Well-covered Professional')",
+      "insurance_types": ["list of inferred insurance types"],
+      "has_life_insurance": boolean,
+      "has_health_insurance": boolean,
+      "total_life_coverage": number (Sum Assured in currency, estimate if needed, 0 if none),
+      "total_health_coverage": number (Sum Assured in currency, estimate if needed, 0 if none),
+      "risk_profile": "conservative|moderate|aggressive",
+      "key_concerns": ["list of inferred concerns"],
+      "gap_analysis": "string (brief sentence on what is missing e.g. 'Low health cover')",
+      "estimated_annual_premium": "number or null"
+    }`;
 
     // Call Groq API (Llama 3 70B)
     const groqResponse = await fetch(

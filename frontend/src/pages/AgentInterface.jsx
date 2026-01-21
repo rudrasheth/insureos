@@ -74,10 +74,13 @@ const AgentInterface = () => {
                     const personaResult = await callConvexHttp('/mcp/persona');
                     const { persona, sources } = personaResult;
 
-                    let summary = `Analysis Done: based on ${personaResult.reasoning || 'your emails'}.
+                    let summary = `Analysis for ${persona.profile_name || 'User'}:
+                    
+                    🛡️ Health Insurance: ${persona.has_health_insurance ? '✅ Active' : '❌ Not Found'} ${persona.total_health_coverage ? `(₹${persona.total_health_coverage})` : ''}
+                    ❤️ Life Insurance: ${persona.has_life_insurance ? '✅ Active' : '❌ Not Found'} ${persona.total_life_coverage ? `(₹${persona.total_life_coverage})` : ''}
+                    
                     Risk Profile: ${persona.risk_profile}
-                    Key Concerns: ${persona.key_concerns?.join(", ") || 'None detected'}
-                    Est. Premium: ${persona.estimated_annual_premium || 'Unknown'}`;
+                    Gap: ${persona.gap_analysis || 'None detected'}`;
 
                     if (sources && sources.length > 0) {
                         summary += `\n\nVerified Sources:\n${sources.map(s => `• ${s.subject} (${new Date(s.date).toLocaleDateString()})`).join('\n')}`;
