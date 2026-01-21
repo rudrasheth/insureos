@@ -140,16 +140,32 @@ export const personaGeneratorAction = internalAction(
     const text = data.choices[0].message.content || "{}";
     const persona = JSON.parse(text);
 
-    // Persist Persona to Supabase
-    const { error: upsertError } = await supabase
+    // Persist Persona to Supabase (manual upsert since no unique constraint)
+    const { data: existing } = await supabase
       .from("personas")
-      .upsert(
-        { user_id: userId, persona_data: persona },
-        { onConflict: "user_id" }
-      );
+      .select("id")
+      .eq("user_id", userId)
+      .single();
 
-    if (upsertError) {
-      console.error("Failed to save persona:", upsertError);
+    if (existing) {
+      // Update existing
+      const { error: updateError } = await supabase
+        .from("personas")
+        .update({ persona_data: persona, updated_at: new Date().toISOString() })
+        .eq("user_id", userId);
+
+      if (updateError) {
+        console.error("Failed to update persona:", updateError);
+      }
+    } else {
+      // Insert new
+      const { error: insertError } = await supabase
+        .from("personas")
+        .insert({ user_id: userId, persona_data: persona });
+
+      if (insertError) {
+        console.error("Failed to insert persona:", insertError);
+      }
     }
 
     return {

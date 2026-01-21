@@ -75,41 +75,35 @@ export const loanExtractorAction = internalAction(
             return null;
         };
 
-        const prompt = `Analyze these emails and extract loan repayment information.
-Look for:
-- Loan Account Statements
-- EMI Due Reminders
-- Repayment Confirmations
-- Home/Car/Personal Loan details
-
-IMPORTANT:
-1. Extract DATA even if the email is forwarded or sent by a personal name.
-2. EXTRACT NUMBERS aggressively. If formatting is messy (e.g. "Rs 10,000"), return it as a STRING.
-3. If outstanding balance or EMI is mentioned, capture it.
+        const prompt = `You are a loan data extraction expert. Extract loan details from these emails.
 
 Emails:
 ${emailContext}
 
-For each loan found, extract:
+EXTRACTION RULES:
+1. Look for lines like "EMI Amount: Rs. 89,500" → Extract "89500" or "Rs. 89,500"
+2. Look for lines like "Interest Rate: 8.40% per annum" → Extract "8.40" or "8.40%"
+3. Look for lines like "Principal Outstanding: Rs. 95,00,000" → Extract "9500000" or "Rs. 95,00,000"
+4. Look for lines like "Remaining Tenure: 156 months" → Extract 156
+
+Return JSON in this EXACT format:
 {
   "loans": [
     {
-      "loan_type": "home|personal|car|education|other",
-      "lender_name": "string",
-      "principal_amount": "Rs. 95,00,000" OR 9500000 OR null,
-      "interest_rate": "8.40% per annum" OR "8.40" OR 8.4 OR null,
-      "emi_amount": "Rs. 89,500" OR 89500 OR null,
-      "tenure_months": 156 OR "156 months" OR null,
-      "remaining_tenure_months": 156 OR "156 months" OR null,
-      "outstanding_balance": "Rs. 95,00,000" OR 9500000 OR null
+      "loan_type": "home",
+      "lender_name": "HDFC Bank",
+      "principal_amount": "9500000",
+      "interest_rate": "8.40",
+      "emi_amount": "89500",
+      "tenure_months": 240,
+      "remaining_tenure_months": 156,
+      "outstanding_balance": "9500000"
     }
   ]
 }
 
-CRITICAL: If you see "EMI Amount: Rs. 89,500", extract it as "Rs. 89,500" or "89500" - DO NOT return null!
-CRITICAL: If you see "Interest Rate: 8.40% per annum", extract it as "8.40" or "8.40%" - DO NOT return null!
-
-If no loan repayment information found, return empty array.`;
+CRITICAL: DO NOT return null for any field if the value exists in the email. Extract the raw text if needed.
+If no loans found, return {"loans": []}`;
 
         try {
             const res = await fetch(
