@@ -16,6 +16,7 @@ const LoanOptimizer = () => {
     const [loading, setLoading] = useState(false);
     const [detectedLoans, setDetectedLoans] = useState([]);
     const [loadingLoans, setLoadingLoans] = useState(false);
+    const [emailsAnalyzed, setEmailsAnalyzed] = useState(0);
 
     useEffect(() => {
         fetchDetectedLoans();
@@ -35,6 +36,7 @@ const LoanOptimizer = () => {
                     rate: loan.interest_rate || '',
                     tenureMonths: loan.remaining_tenure_months || loan.tenure_months || ''
                 });
+                toast.success(`Auto-filled with ${loan.lender_name || 'detected'} loan data`);
             }
         } catch (error) {
             console.error('Failed to fetch loans:', error);
@@ -45,12 +47,20 @@ const LoanOptimizer = () => {
 
     const handleExtractLoans = async () => {
         setLoadingLoans(true);
+        setEmailsAnalyzed(0);
         try {
-            await extractLoans();
-            toast.success('Analyzing your emails for loan information...');
-            setTimeout(() => fetchDetectedLoans(), 2000);
+            toast.loading('Analyzing your emails...', { id: 'loan-scan' });
+            const { data } = await extractLoans();
+
+            if (data.count > 0) {
+                toast.success(`Found ${data.count} loan(s) in your emails!`, { id: 'loan-scan' });
+                setTimeout(() => fetchDetectedLoans(), 1000);
+            } else {
+                toast.error('No loan repayment emails found. Try syncing your Gmail first.', { id: 'loan-scan' });
+            }
         } catch (error) {
-            toast.error('Failed to extract loans');
+            console.error('Extract error:', error);
+            toast.error(error.response?.data?.error || 'Failed to extract loans. Make sure you have synced your Gmail.', { id: 'loan-scan' });
         } finally {
             setLoadingLoans(false);
         }
@@ -124,10 +134,28 @@ const LoanOptimizer = () => {
 
             {/* Detected Loans Banner */}
             {detectedLoans.length > 0 && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm font-bold text-green-900">
+                <div className="mb-6 p-6 bg-green-50 border border-green-200 rounded-lg space-y-3">
+                    <p className="text-sm font-bold text-green-900 mb-3">
                         ✓ {detectedLoans.length} loan(s) detected from your emails
                     </p>
+                    {detectedLoans.map((loan, idx) => (
+                        <div key={idx} className="p-3 bg-white rounded border border-green-100 text-xs">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span className="font-bold text-ink-500">Lender:</span> {loan.lender_name || 'Unknown'}
+                                </div>
+                                <div>
+                                    <span className="font-bold text-ink-500">Type:</span> {loan.loan_type || 'N/A'}
+                                </div>
+                                <div>
+                                    <span className="font-bold text-ink-500">EMI:</span> ₹{loan.emi_amount?.toLocaleString('en-IN') || 'N/A'}
+                                </div>
+                                <div>
+                                    <span className="font-bold text-ink-500">Rate:</span> {loan.interest_rate || 'N/A'}% p.a.
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
 
