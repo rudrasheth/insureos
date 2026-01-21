@@ -71,6 +71,8 @@ IMPORTANT:
 1. Extract DATA even if the email is forwarded or sent by a personal name (e.g. "Ishita Sheth").
 2. Ignore purely promotional "Pre-approved Offers" unless they contain existing loan details.
 3. If outstanding balance or EMI is mentioned, capture it.
+4. EXTRACT NUMBERS CAREFULLY: Remove "Rs.", "INR", "$", "," and other non-numeric characters. Return ONLY raw numbers (e.g. 16701).
+5. Look for terms like "ROI", "Rate", "Int", "Installment", "Principle".
 
 Emails:
 ${emailContext}
