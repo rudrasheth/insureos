@@ -94,15 +94,18 @@ For each loan found, extract:
     {
       "loan_type": "home|personal|car|education|other",
       "lender_name": "string",
-      "principal_amount": "number or string or null",
-      "interest_rate": "number or string or null",
-      "emi_amount": "number or string or null",
-      "tenure_months": "number or string or null",
-      "remaining_tenure_months": "number or string or null",
-      "outstanding_balance": "number or string or null"
+      "principal_amount": "Rs. 95,00,000" OR 9500000 OR null,
+      "interest_rate": "8.40% per annum" OR "8.40" OR 8.4 OR null,
+      "emi_amount": "Rs. 89,500" OR 89500 OR null,
+      "tenure_months": 156 OR "156 months" OR null,
+      "remaining_tenure_months": 156 OR "156 months" OR null,
+      "outstanding_balance": "Rs. 95,00,000" OR 9500000 OR null
     }
   ]
 }
+
+CRITICAL: If you see "EMI Amount: Rs. 89,500", extract it as "Rs. 89,500" or "89500" - DO NOT return null!
+CRITICAL: If you see "Interest Rate: 8.40% per annum", extract it as "8.40" or "8.40%" - DO NOT return null!
 
 If no loan repayment information found, return empty array.`;
 
