@@ -78,6 +78,18 @@ CREATE TABLE IF NOT EXISTS personas (
 
 CREATE INDEX IF NOT EXISTS idx_personas_user_id ON personas(user_id);
 
+-- Chat History Table
+CREATE TABLE IF NOT EXISTS chat_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'agent')),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_history_user_id ON chat_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_history_created_at ON chat_history(created_at);
+
 -- Agent Logs Table
 CREATE TABLE IF NOT EXISTS agent_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

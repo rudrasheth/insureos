@@ -105,6 +105,18 @@ Respond with JSON:
     const text = data.choices[0].message.content || "{}";
     const persona = JSON.parse(text);
 
+    // Persist Persona to Supabase
+    const { error: upsertError } = await supabase
+      .from("personas")
+      .upsert(
+        { user_id: userId, persona_data: persona },
+        { onConflict: "user_id" }
+      );
+
+    if (upsertError) {
+      console.error("Failed to save persona:", upsertError);
+    }
+
     return {
       status: "success",
       persona,

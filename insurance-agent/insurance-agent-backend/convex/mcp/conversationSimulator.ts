@@ -29,6 +29,15 @@ export const conversationSimulatorAction = internalAction({
 
     const supabase = getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Fetch saved persona for context
+    const { data: personaData } = await supabase
+      .from("personas")
+      .select("persona_data")
+      .eq("user_id", userId)
+      .single();
+
+    const persona = personaData?.persona_data || null;
+
     // Fetch ALL user insurance data for context
     const { data: emails, error: emailError } = await supabase
       .from("emails")
@@ -41,19 +50,38 @@ export const conversationSimulatorAction = internalAction({
       throw new Error(`Failed to fetch user context: ${emailError.message}`);
     }
 
+    // Fetch saved chat history from database (last 20 messages for context)
+    const { data: savedHistory } = await supabase
+      .from("chat_history")
+      .select("role, content, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    // Combine saved history with current conversation (reverse to chronological order)
+    const dbHistory = (savedHistory || [])
+      .reverse()
+      .map((m: any) => ({ role: m.role, content: m.content }));
+
+    const fullHistory = [...dbHistory, ...(conversationHistory || [])];
+
     const userContext = emails
       ?.map((e: any) => `- ${e.category}: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
       .join("\n") || "No insurance context";
 
     const conversationContext =
-      conversationHistory
-        ?.map((m) => `${m.role}: ${m.content}`)
-        .join("\n") || "Start of conversation";
+      fullHistory.length > 0
+        ? fullHistory.map((m) => `${m.role}: ${m.content}`).join("\n")
+        : "Start of conversation";
+
+    const personaContext = persona
+      ? `\n\nUser Profile:\n- Risk Profile: ${persona.risk_profile}\n- Key Concerns: ${persona.key_concerns?.join(", ")}\n- Insurance Types: ${persona.insurance_types?.join(", ")}`
+      : "";
 
     const prompt = `You are a helpful insurance agent assistant. Respond to the user's message with empathy and expertise.
 
 User's Insurance Context:
-${userContext}
+${userContext}${personaContext}
 
 Conversation History:
 ${conversationContext}
@@ -99,6 +127,14 @@ Respond ONLY with valid JSON in this exact format:
       const data = (await res.json()) as any;
       const text = data.choices[0].message.content || "{}";
       const result = JSON.parse(text);
+
+      const agentResponse = result.agent_response || "I'm here to help with your insurance questions.";
+
+      // Async save chat history (fire and forget pattern for speed, or await if strict)
+      await Promise.all([
+        supabase.from("chat_history").insert({ user_id: userId, role: "user", content: userMessage }),
+        supabase.from("chat_history").insert({ user_id: userId, role: "agent", content: agentResponse })
+      ]);
 
       return {
         status: "success",
