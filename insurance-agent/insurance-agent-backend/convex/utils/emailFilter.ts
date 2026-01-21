@@ -224,6 +224,18 @@ function deterministicInsuranceCheck(email: EmailInput): DeterministicResult {
     reasons.push("insurance_provider_match");
   }
 
+  // Loan/EMI Keywords → +5 (High confidence for Loan Optimizer)
+  const LOAN_STRONG_KEYWORDS = ["loan statement", "repayment schedule", "emi alert", "loan account"];
+  const LOAN_WEAK_KEYWORDS = ["loan", "emi", "principal", "interest", "installment", "borrower"];
+
+  if (containsKeyword(subject, LOAN_STRONG_KEYWORDS)) {
+    score += 5;
+    reasons.push("strong_loan_signal");
+  } else if (containsKeyword(combined, LOAN_WEAK_KEYWORDS) && containsKeyword(combined, ["statement", "due", "paid"])) {
+    score += 3;
+    reasons.push("loan_context_detected");
+  }
+
   // Determine category based on keywords
   let category: "renewal" | "claim" | "payment" | "new_policy" | "general" = "general";
   for (const [cat, keywords] of Object.entries(CATEGORY_RULES)) {
