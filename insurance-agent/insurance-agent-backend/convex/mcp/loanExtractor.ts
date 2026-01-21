@@ -91,34 +91,40 @@ export const loanExtractorAction = internalAction(
             return null;
         };
 
-        const prompt = `You are a loan data extraction expert. Extract loan details from these emails.
+        const prompt = `Extract loan details from these emails. Be flexible with field names and formats.
 
 Emails:
 ${emailContext}
 
 EXTRACTION RULES:
-1. Look for lines like "EMI Amount: Rs. 89,500" → Extract "89500" or "Rs. 89,500"
-2. Look for lines like "Interest Rate: 8.40% per annum" → Extract "8.40" or "8.40%"
-3. Look for lines like "Principal Outstanding: Rs. 95,00,000" → Extract "9500000" or "Rs. 95,00,000"
-4. Look for lines like "Remaining Tenure: 156 months" → Extract 156
+1. EMI/Installment: Look for "EMI", "EMI Amount", "Monthly Installment", "Instalment" followed by a number
+2. Interest Rate: Look for "Interest Rate", "Rate of Interest", "ROI", "Interest", "Rate" followed by a percentage or number
+3. Principal/Amount: Look for "Principal", "Loan Amount", "Principal Outstanding", "Amount" followed by a number
+4. Tenure: Look for "Tenure", "Term", "Period", "Months", "Duration" followed by a number
 
-Return JSON in this EXACT format:
+IMPORTANT:
+- Extract the NUMBER even if formatting varies (Rs. 89,500 OR 89500 OR Rs 89,500)
+- If you see "8.40%" extract "8.40" or "8.4"
+- If you see "156 months" extract 156
+- DO NOT return empty string "" - return null if not found
+- DO NOT return "" for any field
+
+Return JSON:
 {
   "loans": [
     {
-      "loan_type": "home",
-      "lender_name": "HDFC Bank",
-      "principal_amount": "9500000",
-      "interest_rate": "8.40",
-      "emi_amount": "89500",
-      "tenure_months": 240,
-      "remaining_tenure_months": 156,
-      "outstanding_balance": "9500000"
+      "loan_type": "home|personal|car|education|other",
+      "lender_name": "extract from email",
+      "principal_amount": "number as string or null",
+      "interest_rate": "number as string or null",
+      "emi_amount": "number as string or null",
+      "tenure_months": "number as string or null",
+      "remaining_tenure_months": "number as string or null",
+      "outstanding_balance": "number as string or null"
     }
   ]
 }
 
-CRITICAL: DO NOT return null for any field if the value exists in the email. Extract the raw text if needed.
 If no loans found, return {"loans": []}`;
 
         try {
