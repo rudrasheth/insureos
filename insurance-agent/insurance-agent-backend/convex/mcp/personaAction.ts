@@ -46,8 +46,36 @@ export const personaGeneratorAction = internalAction(
       };
     }
 
-    // Build context from emails
-    const emailSummary = (emails as any[])
+    // Filter emails to prioritize policies/premiums and exclude generic tips
+    const relevantEmails = (emails as any[]).filter((e: any) => {
+      const subject = (e.subject || "").toLowerCase();
+      const isImportant =
+        subject.includes("policy") ||
+        subject.includes("premium") ||
+        subject.includes("renewal") ||
+        subject.includes("receipt") ||
+        subject.includes("statement") ||
+        subject.includes("schedule") ||
+        subject.includes("cover");
+
+      const isGeneric =
+        subject.includes("tips") ||
+        subject.includes("newsletter") ||
+        subject.includes("stay safe") ||
+        subject.includes("guide") ||
+        subject.includes("fraud") ||
+        subject.includes("cyber") ||
+        subject.includes("alert") ||
+        subject.includes("security");
+
+      // We want important emails, OR emails that are not generic noise
+      // (If it's not explicitly important but also not generic, key assumption is allow it but deprioritize? 
+      //  Actually, safer to strict filter for Persona to avoid noise).
+      return !isGeneric; // Simple exclusion is safer than strict inclusion which might miss edge cases
+    });
+
+    // Build context from filtered emails
+    const emailSummary = relevantEmails
       .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
       .join("\n\n");
 

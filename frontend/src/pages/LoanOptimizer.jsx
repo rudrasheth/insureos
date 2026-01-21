@@ -26,6 +26,12 @@ const LoanOptimizer = () => {
         setLoadingLoans(true);
         try {
             const { data } = await getLoans();
+
+            if (data.error) {
+                toast.error(`Error: ${data.details || data.error}`, { id: 'fetch-loans' });
+                return;
+            }
+
             setDetectedLoans(data.loans || []);
 
             // Auto-fill first loan if available
@@ -40,6 +46,7 @@ const LoanOptimizer = () => {
             }
         } catch (error) {
             console.error('Failed to fetch loans:', error);
+            toast.error("Failed to load loans. " + (error.response?.data?.error || error.message));
         } finally {
             setLoadingLoans(false);
         }
