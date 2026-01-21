@@ -214,6 +214,12 @@ async function fetchAllGmailMessages(
     if (!listRes.ok) {
       const errorText = await listRes.text();
       console.error(`[Gmail] Gmail API error ${listRes.status}: ${errorText}`);
+
+      if (listRes.status === 403 && errorText.includes("Gmail API has not been used")) {
+        const activationUrl = "https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=675367765578";
+        throw new Error(`Gmail API is not enabled. Please enable it here: ${activationUrl}`);
+      }
+
       throw new Error(`Gmail API list failed: ${listRes.status} ${errorText}`);
     }
 

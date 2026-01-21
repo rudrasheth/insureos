@@ -80,7 +80,7 @@ Respond ONLY with valid JSON in this exact format:
             "Authorization": `Bearer ${GROQ_API_KEY}`
           },
           body: JSON.stringify({
-            model: "llama3-70b-8192",
+            model: "llama-3.3-70b-versatile",
             messages: [
               { role: "system", content: "You are a helpful insurance agent assistant. Output strictly valid JSON." },
               { role: "user", content: prompt }

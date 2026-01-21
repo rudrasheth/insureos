@@ -100,6 +100,71 @@ const AgentInterface = () => {
         }
     }, []);
 
+    const handleRiskAnalysis = async () => {
+        setLoading(true);
+        setMessages(prev => [...prev, {
+            id: Date.now(),
+            role: 'agent',
+            content: "Analyzing your risk profile based on your emails and claims history...",
+            type: 'text'
+        }]);
+
+        try {
+            const result = await callConvexHttp('/mcp/risk');
+            const { risk_score, risk_level, mitigation_strategies } = result;
+
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'agent',
+                content: `Risk Analysis Complete. Score: ${risk_score}/100 (${risk_level}). \n\nTip: ${mitigation_strategies[0] || "Review your coverage."}`,
+                type: 'success'
+            }]);
+        } catch (error) {
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'agent',
+                content: `Risk analysis failed: ${error.message}`,
+                type: 'error'
+            }]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePolicyAudit = async () => {
+        setLoading(true);
+        setMessages(prev => [...prev, {
+            id: Date.now(),
+            role: 'agent',
+            content: "Auditing your policy documents for coverage gaps...",
+            type: 'text'
+        }]);
+
+        try {
+            const result = await callConvexHttp('/mcp/policy');
+            const { policies, recommendations } = result;
+
+            const policyCount = policies.length;
+            const rec = recommendations[0] || "No specific recommendations found.";
+
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'agent',
+                content: `Audit Complete. Found ${policyCount} active policies. \n\nRecommendation: ${rec}`,
+                type: 'success'
+            }]);
+        } catch (error) {
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'agent',
+                content: `Policy audit failed: ${error.message}`,
+                type: 'error'
+            }]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSync = () => {
         setMessages(prev => [...prev, {
             id: Date.now(),
@@ -179,12 +244,18 @@ const AgentInterface = () => {
                     >
                         <Mail className="w-3 h-3" /> Email Sync
                     </button>
-                    <div className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm">
+                    <button
+                        onClick={handleRiskAnalysis}
+                        className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all cursor-pointer"
+                    >
                         <ShieldAlert className="w-3 h-3" /> Risk Analysis
-                    </div>
-                    <div className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm">
+                    </button>
+                    <button
+                        onClick={handlePolicyAudit}
+                        className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all cursor-pointer"
+                    >
                         <BarChart3 className="w-3 h-3" /> Policy Audit
-                    </div>
+                    </button>
                 </div>
             </div>
 
@@ -223,7 +294,7 @@ const AgentInterface = () => {
                         </div>
                         <div className="bg-white border border-line px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
                             <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
-                            <span className="text-xs font-medium text-ink-400">Processing with Gemini...</span>
+                            <span className="text-xs font-medium text-ink-400">Processing...</span>
                         </div>
                     </div>
                 )}

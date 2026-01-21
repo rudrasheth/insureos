@@ -13,14 +13,14 @@ export const riskAssessmentAction = internalAction({
   handler: async (_ctx, { userId }) => {
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error("Supabase not configured");
     }
 
-    if (!GEMINI_API_KEY) {
-      throw new Error("Gemini API key not configured");
+    if (!GROQ_API_KEY) {
+      throw new Error("Groq API key not configured");
     }
 
     const supabase = getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -86,27 +86,33 @@ Respond with JSON:
 
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        "https://api.groq.com/openai/v1/chat/completions",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            safetySettings: [
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: "You are an AI risk assessor. Output strictly valid JSON." },
+              { role: "user", content: prompt }
             ],
+            response_format: { type: "json_object" },
+            temperature: 0.1
           }),
         }
       );
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(`Gemini API error: ${res.status} - ${JSON.stringify(errorData)}`);
+        throw new Error(`Groq API error: ${res.status} - ${JSON.stringify(errorData)}`);
       }
 
       const data = (await res.json()) as any;
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const result = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const text = data.choices[0].message.content || "{}";
+      const result = JSON.parse(text);
 
       return {
         status: "success",
