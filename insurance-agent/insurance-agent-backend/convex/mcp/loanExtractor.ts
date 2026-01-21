@@ -60,6 +60,8 @@ export const loanExtractorAction = internalAction(
             .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
             .join("\n\n");
 
+        console.log("[LoanExtractor] Email context being sent to AI:", emailContext.substring(0, 500));
+
         // Helper to clean numbers
         const parseNum = (val: any) => {
             if (typeof val === 'number') return val;
@@ -138,6 +140,8 @@ If no loan repayment information found, return empty array.`;
             const data = (await res.json()) as any;
             const text = data.choices[0].message.content || "{}";
             const result = JSON.parse(text);
+
+            console.log("[LoanExtractor] AI returned:", JSON.stringify(result, null, 2));
 
             const loans = result.loans || [];
 
