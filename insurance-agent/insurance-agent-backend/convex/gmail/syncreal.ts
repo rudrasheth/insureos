@@ -43,6 +43,57 @@ function getHeader(headers: { name: string; value: string }[] | undefined, name:
 }
 
 /**
+ * Extract email body from Gmail API payload
+ */
+function getEmailBody(payload: any): string {
+  if (!payload) return "";
+
+  // Try to get body from single part
+  if (payload.body?.data) {
+    try {
+      return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+    } catch (e) {
+      console.warn("[Gmail] Failed to decode body.data:", e);
+    }
+  }
+
+  // Try to get body from multipart
+  if (payload.parts && Array.isArray(payload.parts)) {
+    for (const part of payload.parts) {
+      // Prefer text/plain
+      if (part.mimeType === 'text/plain' && part.body?.data) {
+        try {
+          return Buffer.from(part.body.data, 'base64').toString('utf-8');
+        } catch (e) {
+          console.warn("[Gmail] Failed to decode part body:", e);
+        }
+      }
+    }
+
+    // Fallback to text/html
+    for (const part of payload.parts) {
+      if (part.mimeType === 'text/html' && part.body?.data) {
+        try {
+          return Buffer.from(part.body.data, 'base64').toString('utf-8');
+        } catch (e) {
+          console.warn("[Gmail] Failed to decode HTML part:", e);
+        }
+      }
+    }
+
+    // Recursive check for nested parts
+    for (const part of payload.parts) {
+      if (part.parts) {
+        const nestedBody = getEmailBody(part);
+        if (nestedBody) return nestedBody;
+      }
+    }
+  }
+
+  return "";
+}
+
+/**
  * Compute deterministic timestamp for "10 days ago"
  */
 function getTenDaysAgoTimestamp(): number {
@@ -255,6 +306,7 @@ async function fetchAllGmailMessages(
         const subjectHeader = getHeader(hdrs, "subject");
         const dateHeader = getHeader(hdrs, "date");
         const snippet = msgData.snippet || "";
+        const body = getEmailBody(msgData.payload); // Extract full body
 
         // Parse received_at from internalDate (milliseconds since epoch)
         const receivedAt = msgData.internalDate
@@ -299,6 +351,7 @@ async function fetchAllGmailMessages(
             gmail_message_id: msgData.id,
             sender: fromHeader || "unknown",
             subject: subjectHeader || "(no subject)",
+            body: body || snippet, // Use full body, fallback to snippet
             raw_snippet: snippet,
             is_insurance_related: true,
             is_spam: classification.is_spam || false,
