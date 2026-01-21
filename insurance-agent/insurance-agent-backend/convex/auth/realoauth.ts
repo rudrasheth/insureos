@@ -146,59 +146,68 @@ export const googleAuthCallback = httpAction(async (_ctx: any, request: Request)
     console.log(`[OAuth] Decoded ID token: email=${email}, googleUserId=${googleUserId}`);
 
     // Step 2c: Find or create user
-    // Step 2c: Find or create user (RAW FETCH FALLBACK)
-    // We use direct fetch to avoid "tunnel" errors in Edge Runtime
-    // Attempting to bypass tunnel issue by removing complex query params first or using POST vs GET
+    // Step 2c: Find or create user
+    let user = null;
+    console.log(`[OAuth] Fetching user with email: ${email}`);
 
-    // Simplest possible fetch
-    const userUrl = `${SUPABASE_URL}/rest/v1/users?email=eq.${email}`; // Removed select=* to simplify URL
-    const userHeaders = {
+    // Helper headers for Supabase REST API
+    const supabaseHeaders = {
       "apikey": SUPABASE_SERVICE_ROLE_KEY!,
       "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      // "Content-Type": "application/json", // Not needed for GET
-      // "Prefer": "return=representation"
+      "Content-Type": "application/json",
+      "Prefer": "return=representation", // Get back the inserted/selected data
     };
 
-    let user = null;
-    console.log(`[OAuth] Fetching user from: ${userUrl}`);
+    // 1. Check if user exists
+    const getUserUrl = new URL(`${SUPABASE_URL}/rest/v1/users`);
+    getUserUrl.searchParams.append("email", `eq.${email}`);
+    getUserUrl.searchParams.append("select", "*");
 
-    const lookupRes = await fetch(userUrl, {
+    const getUserResponse = await fetch(getUserUrl.toString(), {
       method: "GET",
-      headers: userHeaders,
-      cache: "no-store"
+      headers: supabaseHeaders,
     });
 
-    if (!lookupRes.ok) {
-      throw new Error(`User lookup failed: ${await lookupRes.text()}`);
+    if (!getUserResponse.ok) {
+      const errText = await getUserResponse.text();
+      throw new Error(`User lookup failed: ${errText}`);
     }
 
-    const existingUsers = await lookupRes.json();
+    const existingUsers = (await getUserResponse.json()) as any[];
 
     if (existingUsers && existingUsers.length > 0) {
       user = existingUsers[0];
-      console.log(`[OAuth] User already exists (via fetch): ${user.id}`);
+      console.log(`[OAuth] User already exists: ${user.id}`);
     } else {
       // Create new user
-      const createRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+      const createUserResponse = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
         method: "POST",
-        headers: userHeaders,
+        headers: supabaseHeaders,
         body: JSON.stringify({ email }),
       });
 
-      if (!createRes.ok) {
-        throw new Error(`Create user failed: ${await createRes.text()}`);
+      if (!createUserResponse.ok) {
+        const errText = await createUserResponse.text();
+        throw new Error(`Create user failed: ${errText}`);
       }
 
-      const createdUsers = await createRes.json();
+      const createdUsers = (await createUserResponse.json()) as any[];
       user = createdUsers[0];
-      console.log(`[OAuth] Created new user (via fetch): ${user.id}`);
+      console.log(`[OAuth] Created new user: ${user.id}`);
     }
 
-    // Step 2d: Upsert auth provider with tokens (RAW FETCH)
+    // Step 2d: Upsert auth provider with tokens
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
-    const providerRes = await fetch(`${SUPABASE_URL}/rest/v1/auth_providers`, {
+
+    // Upsert using on_conflict
+    const upsertUrl = new URL(`${SUPABASE_URL}/rest/v1/auth_providers`);
+    upsertUrl.searchParams.append("on_conflict", "provider,provider_user_id");
+
+    const upsertHeaders = { ...supabaseHeaders, "Prefer": "resolution=merge-duplicates" };
+
+    const providerResponse = await fetch(upsertUrl.toString(), {
       method: "POST",
-      headers: { ...userHeaders, "Prefer": "resolution=merge-duplicates,return=representation" },
+      headers: upsertHeaders,
       body: JSON.stringify({
         user_id: user.id,
         provider: "google",
@@ -206,35 +215,36 @@ export const googleAuthCallback = httpAction(async (_ctx: any, request: Request)
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token || null,
         expires_at: expiresAt.toISOString(),
-      }),
+      })
     });
 
-    if (!providerRes.ok) {
-      throw new Error(`Failed to upsert auth provider: ${await providerRes.text()}`);
+    if (!providerResponse.ok) {
+      const errText = await providerResponse.text();
+      throw new Error(`Failed to upsert auth provider: ${errText}`);
     }
-    console.log(`[OAuth] Upserted auth provider (via fetch)`);
+    console.log(`[OAuth] Upserted auth provider`);
 
-    // Step 2e: Create session (RAW FETCH)
+    // Step 2e: Create session
     const sessionToken = generateSessionToken();
     const sessionExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const sessionRes = await fetch(`${SUPABASE_URL}/rest/v1/sessions`, {
+    const sessionResponse = await fetch(`${SUPABASE_URL}/rest/v1/sessions`, {
       method: "POST",
-      headers: userHeaders,
+      headers: supabaseHeaders, // Prefer: return=representation is already there
       body: JSON.stringify({
         user_id: user.id,
         session_token: sessionToken,
         expires_at: sessionExpiresAt.toISOString(),
-      }),
+      })
     });
 
-    if (!sessionRes.ok) {
-      throw new Error(`Failed to create session: ${await sessionRes.text()}`);
+    if (!sessionResponse.ok) {
+      const errText = await sessionResponse.text();
+      throw new Error(`Failed to create session: ${errText}`);
     }
-    const createdSessions = (await sessionRes.json()) as any[];
-    const session = createdSessions[0];
 
-    console.log(`[OAuth] Created session (via fetch): ${session.id}, expires in 7 days`);
+    // We don't strictly need the session object back, just success
+    console.log(`[OAuth] Created session token, expires in 7 days`); // Don't log ID if we didn't assist to parse it, but it works.
 
     // Step 2f: Redirect to frontend with session token
     return new Response(null, {
