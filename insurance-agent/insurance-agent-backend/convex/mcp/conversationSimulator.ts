@@ -9,22 +9,22 @@ import { getSupabaseClient } from "../utils/supabase";
  * Simulates AI customer service conversations about insurance
  */
 export const conversationSimulatorAction = internalAction({
-  args: { 
-    userId: v.string(), 
-    userMessage: v.string(), 
-    conversationHistory: v.optional(v.array(v.object({ role: v.string(), content: v.string() }))) 
+  args: {
+    userId: v.string(),
+    userMessage: v.string(),
+    conversationHistory: v.optional(v.array(v.object({ role: v.string(), content: v.string() })))
   },
   handler: async (_ctx, { userId, userMessage, conversationHistory }) => {
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error("Supabase not configured");
     }
 
-    if (!GEMINI_API_KEY) {
-      throw new Error("Gemini API key not configured");
+    if (!GROQ_API_KEY) {
+      throw new Error("Groq API key not configured");
     }
 
     const supabase = getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -70,31 +70,35 @@ Respond ONLY with valid JSON in this exact format:
 }`;
 
     try {
+      // Call Groq API
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        "https://api.groq.com/openai/v1/chat/completions",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            safetySettings: [
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            model: "llama3-70b-8192",
+            messages: [
+              { role: "system", content: "You are a helpful insurance agent assistant. Output strictly valid JSON." },
+              { role: "user", content: prompt }
             ],
+            response_format: { type: "json_object" },
+            temperature: 0.5
           }),
         }
       );
 
       if (!res.ok) {
         const errorBody = await res.text();
-        throw new Error(`Gemini API error: ${res.status} - ${errorBody}`);
+        throw new Error(`Groq API error: ${res.status} - ${errorBody}`);
       }
 
       const data = (await res.json()) as any;
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const result = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const text = data.choices[0].message.content || "{}";
+      const result = JSON.parse(text);
 
       return {
         status: "success",

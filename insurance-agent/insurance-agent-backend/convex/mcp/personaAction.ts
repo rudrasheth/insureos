@@ -10,7 +10,7 @@ import { getSupabaseClient } from "../utils/supabase";
 export const personaGeneratorAction = internalAction(
   async (ctx, args: { userId: string }) => {
     const userId = args.userId;
-    
+
     // Create Supabase client
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -51,10 +51,11 @@ export const personaGeneratorAction = internalAction(
       .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
       .join("\n\n");
 
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-    if (!GEMINI_API_KEY) {
-      throw new Error("Gemini API key not configured");
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+    if (!GROQ_API_KEY) {
+      throw new Error("Groq API key not configured");
     }
 
     const prompt = `Analyze this user's insurance email history and generate a detailed persona profile.
@@ -74,29 +75,35 @@ Respond with JSON:
   "policy_count": "estimated count"
 }`;
 
-    // Call Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    // Call Groq API (Llama 3 70B)
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          safetySettings: [
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+          model: "llama3-70b-8192",
+          messages: [
+            { role: "system", content: "You are an AI insurance analyst. Output strictly valid JSON." },
+            { role: "user", content: prompt }
           ],
+          response_format: { type: "json_object" }, // Groq supports JSON mode
+          temperature: 0.2
         }),
       }
     );
 
-    if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(`Gemini API error: ${geminiResponse.status} - ${JSON.stringify(errorData)}`);
+    if (!groqResponse.ok) {
+      const errorData = await groqResponse.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Groq API error: ${groqResponse.status} - ${JSON.stringify(errorData)}`);
     }
 
-    const data = (await geminiResponse.json()) as any;
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const persona = JSON.parse(text.replace(/```json|```/g, "").trim());
+    const data = (await groqResponse.json()) as any;
+    const text = data.choices[0].message.content || "{}";
+    const persona = JSON.parse(text);
 
     return {
       status: "success",
