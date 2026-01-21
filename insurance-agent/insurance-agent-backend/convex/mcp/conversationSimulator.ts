@@ -81,7 +81,11 @@ export const conversationSimulatorAction = internalAction({
         subject.includes("tips") ||
         subject.includes("newsletter") ||
         subject.includes("stay safe") ||
-        subject.includes("guide");
+        subject.includes("guide") ||
+        subject.includes("fraud") ||
+        subject.includes("cyber") ||
+        subject.includes("alert") ||
+        subject.includes("security");
 
       return isImportant && !isGeneric;
     });
@@ -101,9 +105,11 @@ export const conversationSimulatorAction = internalAction({
 
     const prompt = `You are a helpful insurance agent assistant. Respond to the user's message with empathy and expertise.
     
-IMPORTANT: Focus ONLY on the user's actual insurance policies, premiums, and coverage details found in the context. 
-IGNORE general advice, cyber safety tips, or newsletters unless explicitly asked.
-If the user asks about their policies, list real details (policy name, amount, premium) from the emails below.
+CRITICAL INSTRUCTION: 
+1. Focus ONLY on the user's actual insurance policies, premiums, and coverage details found in the "User's Insurance Context". 
+2. DO NOT mention generic emails, safety tips, fraud alerts, or newsletters. 
+3. If an email seems to be about "cyber safety" or "fraud prevention", IGNORE IT completely. It is NOT a policy.
+4. If the user asks about policies, list ONLY the policies (e.g. Mediclaim, Life Insurance) and their amounts.
 
 User's Insurance Context (Real Policies):
 ${userContext}${personaContext}
