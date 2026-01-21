@@ -229,10 +229,10 @@ function deterministicInsuranceCheck(email: EmailInput): DeterministicResult {
   const LOAN_WEAK_KEYWORDS = ["loan", "emi", "principal", "interest", "installment", "borrower"];
 
   if (containsKeyword(subject, LOAN_STRONG_KEYWORDS)) {
-    score += 5;
+    score += 10; // Guarantees acceptance (Threshold is 6)
     reasons.push("strong_loan_signal");
   } else if (containsKeyword(combined, LOAN_WEAK_KEYWORDS) && containsKeyword(combined, ["statement", "due", "paid"])) {
-    score += 3;
+    score += 5; // Strong borderline or accept
     reasons.push("loan_context_detected");
   }
 
