@@ -144,43 +144,76 @@ Return {"loans": []} if no loan data found.`;
 
             const data = (await res.json()) as any;
             const text = data.choices[0].message.content || "{}";
-            const result = JSON.parse(text);
+            console.log(`[LoanExtractor] AI returned: ${text}`);
 
-            console.log("[LoanExtractor] AI returned:", JSON.stringify(result, null, 2));
+            let result;
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                console.error("[LoanExtractor] Failed to parse AI JSON, retrying with regex cleanup");
+                // Try to sanitize JSON
+                const cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+                try {
+                    result = JSON.parse(cleanText);
+                } catch (e2) {
+                    result = { loans: [] }; // Fallback to empty if even cleanup fails
+                }
+            }
 
-            const loans = result.loans || [];
+            const aiLoans = result.loans || [];
 
-            // Save loans to database with Deduplication
-            if (loans.length > 0) {
+            // Regex Fallback Helpers
+            const extractRegex = (text: string, patterns: RegExp[]): number | null => {
+                for (const pattern of patterns) {
+                    const match = text.match(pattern);
+                    if (match && match[1]) {
+                        const num = parseNum(match[1]);
+                        if (num) return num;
+                    }
+                }
+                return null;
+            };
+
+            const processedLoans = aiLoans.map((l: any) => {
+                // If AI missed fields, try regex on the full email context
+                const emi = parseNum(l.emi_amount) || extractRegex(emailContext, [/EMI.*?:?\s*Rs\.?\s*([\d,]+)/i, /Installment.*?:?\s*Rs\.?\s*([\d,]+)/i, /Payment.*?:?\s*Rs\.?\s*([\d,]+)/i]);
+                const rate = parseNum(l.interest_rate) || extractRegex(emailContext, [/Interest Rate.*?:?\s*([\d.]+)/i, /Rate.*?:?\s*([\d.]+)%/i, /ROI.*?:?\s*([\d.]+)%/i]);
+                const tenure = parseNum(l.tenure_months) || extractRegex(emailContext, [/Tenure.*?:?\s*(\d+)\s*months/i, /Term.*?:?\s*(\d+)\s*months/i]);
+                const principal = parseNum(l.principal_amount) || parseNum(l.outstanding_balance) || extractRegex(emailContext, [/Principal.*?:?\s*Rs\.?\s*([\d,]+)/i, /Outstanding.*?:?\s*Rs\.?\s*([\d,]+)/i]);
+
+                return {
+                    user_id: userId,
+                    email_id: emailId || (emails[0] as any).id,
+                    loan_type: (l.loan_type || "other").toLowerCase(),
+                    lender_name: l.lender_name || "Unknown Lender",
+                    principal_amount: principal,
+                    interest_rate: rate,
+                    emi_amount: emi,
+                    tenure_months: tenure,
+                    remaining_tenure_months: l.remaining_tenure_months ? parseNum(l.remaining_tenure_months) : null,
+                    outstanding_balance: parseNum(l.outstanding_balance) || principal,
+                };
+            });
+
+            console.log("[LoanExtractor] Processed loans with fallback:", JSON.stringify(processedLoans, null, 2));
+
+            if (processedLoans.length > 0) {
                 // Fetch existing loans to de-duplicate
                 const { data: existingLoans } = await supabase
                     .from("loans")
                     .select("lender_name, loan_type, emi_amount")
                     .eq("user_id", userId);
 
-                const loansToInsert = loans
-                    .map((loan: any) => ({
-                        user_id: userId,
-                        email_id: emailId || emails[0].id,
-                        loan_type: (loan.loan_type || 'other').toLowerCase(),
-                        lender_name: loan.lender_name || 'Unknown Lender',
-                        principal_amount: parseNum(loan.principal_amount),
-                        interest_rate: parseNum(loan.interest_rate),
-                        emi_amount: parseNum(loan.emi_amount),
-                        tenure_months: parseNum(loan.tenure_months),
-                        remaining_tenure_months: parseNum(loan.remaining_tenure_months),
-                        outstanding_balance: parseNum(loan.outstanding_balance),
-                    }))
-                    .filter((newLoan: any) => {
-                        // Check if duplicate
-                        const isDuplicate = existingLoans?.some((existing: any) =>
-                            existing.lender_name === newLoan.lender_name &&
-                            existing.loan_type === newLoan.loan_type &&
-                            // If EMI matches or is very close, assume duplicate
-                            (Math.abs((existing.emi_amount || 0) - (newLoan.emi_amount || 0)) < 10)
-                        );
-                        return !isDuplicate;
-                    });
+                const loansToInsert = processedLoans.filter((newLoan: any) => {
+                    // Check if duplicate
+                    const isDuplicate = existingLoans?.some((existing: any) =>
+                        existing.lender_name === newLoan.lender_name &&
+                        existing.loan_type === newLoan.loan_type &&
+                        // If EMI matches or is very close, assume duplicate
+                        (Math.abs((existing.emi_amount || 0) - (newLoan.emi_amount || 0)) < 10)
+                    );
+                    return !isDuplicate;
+                });
 
                 if (loansToInsert.length > 0) {
                     const { error: insertError } = await supabase
@@ -195,10 +228,11 @@ Return {"loans": []} if no loan data found.`;
 
             return {
                 status: "success",
-                loans,
-                count: loans.length,
+                loans: processedLoans,
+                count: processedLoans.length,
                 debug_analyzed_subjects: emails.map((e: any) => e.subject),
             };
+
         } catch (error) {
             throw new Error(`Loan extraction failed: ${String(error)}`);
         }

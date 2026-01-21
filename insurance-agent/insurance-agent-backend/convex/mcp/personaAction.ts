@@ -56,9 +56,8 @@ export const personaGeneratorAction = internalAction(
         subject.includes("receipt") ||
         subject.includes("statement") ||
         subject.includes("schedule") ||
-        subject.includes("loan") ||
         subject.includes("insurance") ||
-        subject.includes("payment") || // Added payment
+        subject.includes("payment") ||
         subject.includes("cover");
 
       const isGeneric =
