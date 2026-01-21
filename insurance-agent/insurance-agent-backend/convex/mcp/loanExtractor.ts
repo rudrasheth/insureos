@@ -36,7 +36,7 @@ export const loanExtractorAction = internalAction(
         if (emailId) {
             query = query.eq("id", emailId).limit(1);
         } else {
-            query = query.limit(20); // Analyze recent 20 emails
+            query = query.limit(50); // Analyze recent 50 emails
         }
 
         const { data: emails, error } = await query;
@@ -49,16 +49,19 @@ export const loanExtractorAction = internalAction(
             return {
                 status: "success",
                 loans: [],
-                message: "No loan-related emails found",
+                message: "No emails found to analyze",
             };
         }
+
+        console.log(`[LoanExtractor] Analyzing ${emails.length} emails:`, emails.map((e: any) => e.subject));
 
         // Build email context
         const emailContext = (emails as any[])
             .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
             .join("\n\n");
 
-        const prompt = `Analyze these emails and extract loan repayment information. ONLY extract information about loans the user OWES (EMI payments), NOT loan offers.
+        const prompt = `Analyze these emails and extract loan repayment information. Look for loan statements, EMI payment confirmations, or loan account details.
+Ignore general marketing or loan OFFERS. Focusing on active loans.
 
 Emails:
 ${emailContext}
