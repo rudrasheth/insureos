@@ -91,41 +91,30 @@ export const loanExtractorAction = internalAction(
             return null;
         };
 
-        const prompt = `Extract loan details from these emails. Be flexible with field names and formats.
+        const prompt = `Extract loan data from these emails. Find ANY numbers related to loans.
 
-Emails:
 ${emailContext}
 
-EXTRACTION RULES:
-1. EMI/Installment: Look for "EMI", "EMI Amount", "Monthly Installment", "Instalment" followed by a number
-2. Interest Rate: Look for "Interest Rate", "Rate of Interest", "ROI", "Interest", "Rate" followed by a percentage or number
-3. Principal/Amount: Look for "Principal", "Loan Amount", "Principal Outstanding", "Amount" followed by a number
-4. Tenure: Look for "Tenure", "Term", "Period", "Months", "Duration" followed by a number
+Find and extract:
+- EMI or Monthly Payment amount (look for "EMI", "monthly", "installment", "payment")
+- Interest Rate (look for "rate", "interest", "ROI", "%")  
+- Tenure in months (look for "tenure", "months", "term", "period")
+- Principal or Loan Amount (look for "principal", "amount", "loan amount", "outstanding")
 
-IMPORTANT:
-- Extract the NUMBER even if formatting varies (Rs. 89,500 OR 89500 OR Rs 89,500)
-- If you see "8.40%" extract "8.40" or "8.4"
-- If you see "156 months" extract 156
-- DO NOT return empty string "" - return null if not found
-- DO NOT return "" for any field
-
-Return JSON:
+Return JSON with extracted numbers (remove Rs, ₹, %, commas):
 {
-  "loans": [
-    {
-      "loan_type": "home|personal|car|education|other",
-      "lender_name": "extract from email",
-      "principal_amount": "number as string or null",
-      "interest_rate": "number as string or null",
-      "emi_amount": "number as string or null",
-      "tenure_months": "number as string or null",
-      "remaining_tenure_months": "number as string or null",
-      "outstanding_balance": "number as string or null"
-    }
-  ]
+  "loans": [{
+    "loan_type": "home",
+    "lender_name": "extract bank name",
+    "emi_amount": "extract number or null",
+    "interest_rate": "extract number or null",
+    "tenure_months": "extract number or null",
+    "principal_amount": "extract number or null",
+    "outstanding_balance": "extract number or null"
+  }]
 }
 
-If no loans found, return {"loans": []}`;
+Return {"loans": []} if no loan data found.`;
 
         try {
             const res = await fetch(
