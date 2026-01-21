@@ -65,9 +65,30 @@ export const conversationSimulatorAction = internalAction({
 
     const fullHistory = [...dbHistory, ...(conversationHistory || [])];
 
-    const userContext = emails
-      ?.map((e: any) => `- ${e.category}: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
-      .join("\n") || "No insurance context";
+    // Filter emails to prioritize policies/premiums and exclude generic tips
+    const relevantEmails = emails?.filter((e: any) => {
+      const subject = (e.subject || "").toLowerCase();
+      const isImportant =
+        subject.includes("policy") ||
+        subject.includes("premium") ||
+        subject.includes("renewal") ||
+        subject.includes("receipt") ||
+        subject.includes("statement") ||
+        subject.includes("schedule") ||
+        subject.includes("cover");
+
+      const isGeneric =
+        subject.includes("tips") ||
+        subject.includes("newsletter") ||
+        subject.includes("stay safe") ||
+        subject.includes("guide");
+
+      return isImportant && !isGeneric;
+    });
+
+    const userContext = relevantEmails
+      ?.map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
+      .join("\n\n") || "No specific policy documents found.";
 
     const conversationContext =
       fullHistory.length > 0
@@ -79,8 +100,12 @@ export const conversationSimulatorAction = internalAction({
       : "";
 
     const prompt = `You are a helpful insurance agent assistant. Respond to the user's message with empathy and expertise.
+    
+IMPORTANT: Focus ONLY on the user's actual insurance policies, premiums, and coverage details found in the context. 
+IGNORE general advice, cyber safety tips, or newsletters unless explicitly asked.
+If the user asks about their policies, list real details (policy name, amount, premium) from the emails below.
 
-User's Insurance Context:
+User's Insurance Context (Real Policies):
 ${userContext}${personaContext}
 
 Conversation History:

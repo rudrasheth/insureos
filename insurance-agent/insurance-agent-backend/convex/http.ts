@@ -680,23 +680,28 @@ http.route({
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = (await import("./utils/supabase")).getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: loans, error } = await supabase
-      .from("loans")
-      .select("*")
-      .eq("user_id", user_id)
-      .order("created_at", { ascending: false });
+    try {
+      const { data: loans, error } = await supabase
+        .from("loans")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return new Response(JSON.stringify({ loans: loans || [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    } catch (err: any) {
+      console.error("GET loans error:", err);
+      return new Response(JSON.stringify({ error: "Fetch failed", details: err.message || String(err) }), {
+        status: 200, // Return 200 to show error on frontend
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
-
-    return new Response(JSON.stringify({ loans: loans || [] }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-    });
   }),
 });
 
