@@ -39,17 +39,33 @@ export const loanExtractorAction = internalAction(
             query = query.limit(50); // Analyze recent 50 emails
         }
 
-        const { data: emails, error } = await query;
+        const { data: allEmails, error } = await query;
 
         if (error) {
             throw new Error(`Failed to fetch emails: ${error.message}`);
         }
 
-        if (!emails || emails.length === 0) {
+        if (!allEmails || allEmails.length === 0) {
             return {
                 status: "success",
                 loans: [],
                 message: "No emails found to analyze",
+            };
+        }
+
+        // Filter to ONLY loan-related emails
+        const emails = (allEmails as any[]).filter((e: any) => {
+            const subject = (e.subject || "").toLowerCase();
+            return subject.includes("loan") ||
+                subject.includes("emi") ||
+                subject.includes("mortgage");
+        });
+
+        if (emails.length === 0) {
+            return {
+                status: "success",
+                loans: [],
+                message: "No loan-related emails found",
             };
         }
 
