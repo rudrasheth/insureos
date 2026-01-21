@@ -290,8 +290,8 @@ async function fetchAllGmailMessages(
         if (classification.is_insurance_related) {
           // Map classifier values to database-allowed values: 'rules' or 'rules+ai'
           let classifiedByValue: "rules" | "rules+ai" = "rules";
-          if (classification.classified_by === "gemini_fallback") {
-            classifiedByValue = "rules+ai"; // Gemini validation counts as AI-assisted rules
+          if (classification.classified_by === "groq_fallback") {
+            classifiedByValue = "rules+ai"; // Groq validation counts as AI-assisted rules
           }
 
           emailsToInsert.push({

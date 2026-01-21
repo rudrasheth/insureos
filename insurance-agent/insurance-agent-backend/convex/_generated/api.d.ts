@@ -34,6 +34,7 @@ import type * as mcp_personaGenerator from "../mcp/personaGenerator.js";
 import type * as mcp_policyAnalyzer from "../mcp/policyAnalyzer.js";
 import type * as mcp_recommendationEngine from "../mcp/recommendationEngine.js";
 import type * as mcp_riskAssessment from "../mcp/riskAssessment.js";
+import type * as mcp_sendReport from "../mcp/sendReport.js";
 import type * as queries_emails from "../queries/emails.js";
 import type * as utils_emailFilter from "../utils/emailFilter.js";
 import type * as utils_supabase from "../utils/supabase.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/policyAnalyzer": typeof mcp_policyAnalyzer;
   "mcp/recommendationEngine": typeof mcp_recommendationEngine;
   "mcp/riskAssessment": typeof mcp_riskAssessment;
+  "mcp/sendReport": typeof mcp_sendReport;
   "queries/emails": typeof queries_emails;
   "utils/emailFilter": typeof utils_emailFilter;
   "utils/supabase": typeof utils_supabase;

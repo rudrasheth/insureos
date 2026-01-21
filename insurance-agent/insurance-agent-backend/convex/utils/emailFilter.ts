@@ -10,7 +10,7 @@ interface ClassificationResult {
   is_insurance_related: boolean;
   category: string;
   confidence: number;
-  classified_by: "deterministic" | "gemini_fallback";
+  classified_by: "deterministic" | "groq_fallback";
   deterministic_score?: number; // For logging/debugging
 }
 
@@ -84,7 +84,7 @@ const CATEGORY_RULES: Record<string, string[]> = {
   payment: ["premium received", "receipt", "payment confirmed", "transaction"],
 };
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 function normalize(text?: string): string {
   return (text || "").toLowerCase();
@@ -202,7 +202,7 @@ function deterministicInsuranceCheck(email: EmailInput): DeterministicResult {
 }
 
 /**
- * STAGE 2: Gemini Fallback Validation
+ * STAGE 2: Groq Fallback Validation
  * 
  * Called ONLY if deterministic score is borderline (3-5).
  * Never used as primary classifier.
@@ -211,18 +211,18 @@ function deterministicInsuranceCheck(email: EmailInput): DeterministicResult {
  * - is_insurance === true
  * - confidence >= 0.7
  * 
- * If accepted: source="gemini_fallback"
+ * If accepted: source="groq_fallback"
  * If rejected or error: drop email (insurance=false)
  * 
- * NOTE: Gemini reasoning is NOT stored in DB (only acceptance/rejection)
+ * NOTE: Groq reasoning is NOT stored in DB (only acceptance/rejection)
  */
-async function geminiInsuranceFallback(email: EmailInput): Promise<{ isInsurance: boolean; confidence: number }> {
-  if (!GEMINI_API_KEY) {
-    console.log(`[EmailFilter] Gemini API key not set, defaulting to deterministic only`);
+async function groqInsuranceFallback(email: EmailInput): Promise<{ isInsurance: boolean; confidence: number }> {
+  if (!GROQ_API_KEY) {
+    console.log(`[EmailFilter] Groq API key not set, defaulting to deterministic only`);
     return { isInsurance: false, confidence: 0 };
   }
 
-  // Strict validation prompt - Gemini validates, doesn't classify
+  // Strict validation prompt - Groq validates, doesn't classify
   const prompt = `You are validating whether an email is a legitimate insurance-related communication.
 
 Rules:
@@ -243,32 +243,34 @@ Respond with:
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
-            },
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: "You are an AI email validator. Output strictly valid JSON." },
+            { role: "user", content: prompt }
           ],
-          safetySettings: [
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-          ],
+          response_format: { type: "json_object" },
+          temperature: 0.1
         }),
       }
     );
 
     if (!res.ok) {
       const errText = await res.text();
-      console.warn(`[EmailFilter] Gemini validation call failed: ${errText}`);
+      console.warn(`[EmailFilter] Groq validation call failed: ${errText}`);
       return { isInsurance: false, confidence: 0 };
     }
 
     const data = (await res.json()) as any;
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim()) as {
+    const text = data.choices[0].message.content || "{}";
+    const parsed = JSON.parse(text) as {
       is_insurance?: boolean;
       confidence?: number;
     };
@@ -277,10 +279,9 @@ Respond with:
     const confidence = Math.min(Math.max(parsed.confidence || 0, 0), 1);
 
     // Only accept if is_insurance=true AND confidence >= 0.7
-    // Gemini reasoning is NOT logged to DB
     return { isInsurance, confidence };
   } catch (err) {
-    console.warn(`[EmailFilter] Gemini fallback error: ${String(err)}, treating as non-insurance`);
+    console.warn(`[EmailFilter] Groq fallback error: ${String(err)}, treating as non-insurance`);
     return { isInsurance: false, confidence: 0 };
   }
 }
@@ -290,7 +291,7 @@ Respond with:
  */
 function categorizeDeterministic(email: EmailInput): "insurance" | "spam" | "other" {
   const combined = `${normalize(email.subject)} ${normalize(email.snippet)}`;
-  
+
   for (const keywords of Object.values(CATEGORY_RULES)) {
     if (containsKeyword(combined, keywords)) {
       return "insurance";
@@ -362,29 +363,29 @@ export async function classifyEmail(email: EmailInput): Promise<ClassificationRe
     };
   }
 
-  // Borderline case (score 3-5): Call Gemini API as validator fallback
-  // Gemini is ONLY used here, never as primary classifier
-  console.log(`[EmailFilter] Borderline score (${score}), calling Gemini validator...`);
-  const geminiResult = await geminiInsuranceFallback(email);
+  // Borderline case (score 3-5): Call Groq API as validator fallback
+  // Groq is ONLY used here, never as primary classifier
+  console.log(`[EmailFilter] Borderline score (${score}), calling Groq validator...`);
+  const groqResult = await groqInsuranceFallback(email);
 
-  // Accept Gemini result ONLY if is_insurance=true AND confidence >= 0.7
-  if (geminiResult.isInsurance && geminiResult.confidence >= 0.7) {
+  // Accept Groq result ONLY if is_insurance=true AND confidence >= 0.7
+  if (groqResult.isInsurance && groqResult.confidence >= 0.7) {
     console.log(
-      `[EmailFilter] Gemini accepted (is_insurance=true, confidence=${geminiResult.confidence})`
+      `[EmailFilter] Groq accepted (is_insurance=true, confidence=${groqResult.confidence})`
     );
     return {
       is_spam: false,
       is_insurance_related: true,
       category: categorizeDeterministic(email),
-      confidence: geminiResult.confidence,
-      classified_by: "gemini_fallback", // Source tracks that Gemini was used
+      confidence: groqResult.confidence,
+      classified_by: "groq_fallback", // Source tracks that Groq was used
       deterministic_score: score,
     };
   }
 
-  // Gemini rejected or low confidence → treat as non-insurance
+  // Groq rejected or low confidence → treat as non-insurance
   console.log(
-    `[EmailFilter] Gemini rejected or low confidence (is_insurance=${geminiResult.isInsurance}, confidence=${geminiResult.confidence})`
+    `[EmailFilter] Groq rejected or low confidence (is_insurance=${groqResult.isInsurance}, confidence=${groqResult.confidence})`
   );
   return {
     is_spam: false,
