@@ -643,7 +643,7 @@ http.route({
       // Extract useful message from Convex error
       const msg = error.message || String(error);
       return new Response(JSON.stringify({ error: "Extraction failed", details: msg }), {
-        status: 500,
+        status: 200, // Return 200 so frontend can read the body easily
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
