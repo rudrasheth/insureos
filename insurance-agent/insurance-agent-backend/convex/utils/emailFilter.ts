@@ -21,7 +21,7 @@ interface DeterministicResult {
   reason: string;
 }
 
-const SPAM_SENDER_TOKENS = ["noreply", "no-reply", "promo", "marketing"];
+const SPAM_SENDER_TOKENS = ["promo", "marketing"]; // Removed 'noreply' as it blocks valid statements
 const SPAM_SUBJECT_KEYWORDS = [
   "free",
   "win",
