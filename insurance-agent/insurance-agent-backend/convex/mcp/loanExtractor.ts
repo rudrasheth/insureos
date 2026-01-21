@@ -60,8 +60,17 @@ export const loanExtractorAction = internalAction(
             .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
             .join("\n\n");
 
-        const prompt = `Analyze these emails and extract loan repayment information. Look for loan statements, EMI payment confirmations, or loan account details.
-Ignore general marketing or loan OFFERS. Focusing on active loans.
+        const prompt = `Analyze these emails and extract loan repayment information.
+Look for:
+- Loan Account Statements
+- EMI Due Reminders
+- Repayment Confirmations
+- Home/Car/Personal Loan details
+
+IMPORTANT:
+1. Extract DATA even if the email is forwarded or sent by a personal name (e.g. "Ishita Sheth").
+2. Ignore purely promotional "Pre-approved Offers" unless they contain existing loan details.
+3. If outstanding balance or EMI is mentioned, capture it.
 
 Emails:
 ${emailContext}
@@ -144,6 +153,7 @@ If no loan repayment information found, return empty array.`;
                 status: "success",
                 loans,
                 count: loans.length,
+                debug_analyzed_subjects: emails.map((e: any) => e.subject),
             };
         } catch (error) {
             throw new Error(`Loan extraction failed: ${String(error)}`);

@@ -57,6 +57,8 @@ const LoanOptimizer = () => {
             toast.loading('Analyzing emails for loans...', { id: 'loan-scan' });
             const { data } = await extractLoans();
 
+            console.log('Analyzed Emails:', data.debug_analyzed_subjects);
+
             if (data.count > 0) {
                 toast.success(`Found ${data.count} loan(s)!`, { id: 'loan-scan' });
                 setTimeout(() => fetchDetectedLoans(), 1000);
