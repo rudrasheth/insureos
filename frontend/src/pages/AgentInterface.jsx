@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Loader2, Mail, ShieldAlert, BarChart3, MessageSquare } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Mail, ShieldAlert, BarChart3, MessageSquare, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
 
@@ -165,6 +165,88 @@ const AgentInterface = () => {
         }
     };
 
+    const handleDownloadAndSendReport = async () => {
+        try {
+            setLoading(true);
+            setMessages(prev => [...prev, {
+                id: Date.now(),
+                role: 'agent',
+                content: "Generating and emailing your PDF report...",
+                type: 'text'
+            }]);
+
+            // 1. Generate PDF (Client Side)
+            const { jsPDF } = await import("jspdf");
+            const doc = new jsPDF();
+
+            doc.setFontSize(22);
+            doc.text("InsureOS Analysis Report", 20, 20);
+
+            doc.setFontSize(12);
+            doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 30);
+            doc.line(20, 35, 190, 35);
+
+            let y = 50;
+            messages.forEach(msg => {
+                if (y > 270) { doc.addPage(); y = 20; }
+                const role = msg.role === 'agent' ? "Agent:" : "You:";
+                doc.setFont("helvetica", "bold");
+                doc.text(role, 20, y);
+
+                doc.setFont("helvetica", "normal");
+                const splitText = doc.splitTextToSize(msg.content, 160);
+                doc.text(splitText, 35, y);
+
+                y += (splitText.length * 7) + 10;
+            });
+
+            // Download Locally
+            doc.save("InsureOS_Report.pdf");
+
+            // 2. Send via Email (Backend)
+            const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+            // Assuming we have the user's email from somewhere, or prompting roughly. 
+            // For now, let's assume the user's email is linked to the session and backend knows it from 'gmail sync',
+            // or we ask the user. Since backend has the token, it *can* send TO itself easily.
+            // Let's rely on backend extracting 'me' email or just sending to 'me' alias.
+
+            // Wait, sendReportAction expects userEmail. mcp/report endpoint?
+            // Let's decode the token or just send to "me" (Gmail API allows sending to self easily or we hardcode the To as the authorized user).
+            // Actually, for better UX, let's fetch 'me' first? 
+            // Simplified: The backend sendReportAction sends to `me` if no email provided? 
+            // Let's update backend logic later if needed, but for now passing a placeholder or extracting from token if possible.
+            // Re-reading sendReport.ts: It takes `userEmail`. 
+            // I'll fetch /me first to get email.
+
+            const meRes = await callConvexHttp('/me');
+            const userEmail = meRes.email;
+
+            await callConvexHttp('/mcp/report', {
+                pdfBase64,
+                userEmail
+            });
+
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'agent',
+                content: `✅ Report downloaded and sent to ${userEmail}!`,
+                type: 'success'
+            }]);
+
+        } catch (error) {
+            console.error("Report Error:", error);
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'agent',
+                content: `Failed to process report: ${error.message}`,
+                type: 'error'
+            }]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSync = () => {
         setMessages(prev => [...prev, {
             id: Date.now(),
@@ -255,6 +337,12 @@ const AgentInterface = () => {
                         className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all cursor-pointer"
                     >
                         <BarChart3 className="w-3 h-3" /> Policy Audit
+                    </button>
+                    <button
+                        onClick={handleDownloadAndSendReport}
+                        className="px-3 py-1 rounded-full bg-white border border-line flex items-center gap-2 text-xs font-bold text-ink-500 uppercase tracking-widest shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all cursor-pointer"
+                    >
+                        <FileText className="w-3 h-3" /> Report
                     </button>
                 </div>
             </div>

@@ -304,6 +304,57 @@ const mcpChat = httpAction(async (ctx: any, request: Request) => {
   }
 });
 
+const mcpReport = httpAction(async (ctx: any, request: Request) => {
+  try {
+    // 1. CORS Preflight
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+    }
+
+    if (request.method !== "POST") {
+      return new Response(
+        JSON.stringify({ error: "Method not allowed, use POST" }),
+        { status: 405, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+
+    // 2. Validate Session
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      );
+    }
+    const sessionToken = authHeader.substring(7);
+    const user_id = await validateSessionAndGetUserId(sessionToken);
+
+    // 3. Parse Body
+    const body = await request.json().catch(() => ({}));
+    const { pdfBase64, userEmail } = body as { pdfBase64: string, userEmail: string };
+
+    const result = await ctx.runAction(internal.mcp.sendReport.sendReportAction, { userId: user_id, pdfBase64, userEmail });
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  } catch (error) {
+    console.error(`[MCP Report] Error: ${String(error)}`);
+    return new Response(
+      JSON.stringify({ error: "Failed to send report", details: String(error) }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
+  }
+});
+
 const http = httpRouter();
 
 // Health check
@@ -510,6 +561,17 @@ http.route({
   path: "/mcp/chat",
   method: "OPTIONS",
   handler: mcpChat,
+});
+
+http.route({
+  path: "/mcp/report",
+  method: "POST",
+  handler: mcpReport,
+});
+http.route({
+  path: "/mcp/report",
+  method: "OPTIONS",
+  handler: mcpReport,
 });
 
 export default http;
