@@ -42,6 +42,7 @@ export const calculateLoan = (data) => api.post('/loans/calculate', data);
 export const simulatePrepayment = (data) => api.post('/loans/simulate', data);
 
 // Loan detection from emails
+export const syncGmail = () => api.post('/gmail/sync');
 export const extractLoans = () => api.post('/loans/extract');
 export const getLoans = () => api.get('/loans');
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Zap, ArrowRight, TrendingDown, Clock, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { calculateLoan, simulatePrepayment, getLoans, extractLoans } from '../api/client';
+import { calculateLoan, simulatePrepayment, getLoans, extractLoans, syncGmail } from '../api/client';
 import { clsx } from 'clsx';
 
 const LoanOptimizer = () => {
@@ -49,18 +49,24 @@ const LoanOptimizer = () => {
         setLoadingLoans(true);
         setEmailsAnalyzed(0);
         try {
-            toast.loading('Analyzing your emails...', { id: 'loan-scan' });
+            // Step 1: Sync Gmail
+            toast.loading('Syncing latest emails...', { id: 'loan-scan' });
+            await syncGmail();
+
+            // Step 2: Extract Loans
+            toast.loading('Analyzing emails for loans...', { id: 'loan-scan' });
             const { data } = await extractLoans();
 
             if (data.count > 0) {
-                toast.success(`Found ${data.count} loan(s) in your emails!`, { id: 'loan-scan' });
+                toast.success(`Found ${data.count} loan(s)!`, { id: 'loan-scan' });
                 setTimeout(() => fetchDetectedLoans(), 1000);
             } else {
-                toast.error('No loan repayment emails found. Try syncing your Gmail first.', { id: 'loan-scan' });
+                toast.error('No new loan statements found in recent emails.', { id: 'loan-scan' });
             }
         } catch (error) {
             console.error('Extract error:', error);
-            toast.error(error.response?.data?.error || 'Failed to extract loans. Make sure you have synced your Gmail.', { id: 'loan-scan' });
+            const msg = error.response?.data?.error || 'Scan failed. Ensure you are logged in with Google.';
+            toast.error(msg, { id: 'loan-scan' });
         } finally {
             setLoadingLoans(false);
         }
