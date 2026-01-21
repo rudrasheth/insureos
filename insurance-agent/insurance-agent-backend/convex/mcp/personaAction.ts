@@ -68,7 +68,11 @@ export const personaGeneratorAction = internalAction(
         subject.includes("fraud") ||
         subject.includes("cyber") ||
         subject.includes("alert") ||
-        subject.includes("security");
+        subject.includes("security") ||
+        subject.includes("credit for") || // Exclude "Premium Requests credit"
+        subject.includes("subscription") ||
+        subject.includes("verify") ||
+        subject.includes("onboarding");
 
       // STRICT Filtering: Must be Important AND Not Generic
       return isImportant && !isGeneric;

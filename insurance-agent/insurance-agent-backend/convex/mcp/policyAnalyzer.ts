@@ -70,7 +70,9 @@ export const policyAnalyzerAction = internalAction({
       const isGeneric =
         subject.includes("tips") ||
         subject.includes("newsletter") ||
-        subject.includes("guide");
+        subject.includes("guide") ||
+        subject.includes("credit for") ||
+        subject.includes("subscription");
 
       return isImportant && !isGeneric;
     });

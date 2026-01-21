@@ -72,7 +72,9 @@ export const riskAssessmentAction = internalAction({
         subject.includes("tips") ||
         subject.includes("newsletter") ||
         subject.includes("stay safe") ||
-        subject.includes("guide");
+        subject.includes("guide") ||
+        subject.includes("credit for") ||
+        subject.includes("subscription");
 
       return isImportant && !isGeneric;
     });

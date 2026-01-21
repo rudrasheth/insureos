@@ -32,11 +32,22 @@ const LoanOptimizer = () => {
                 return;
             }
 
-            setDetectedLoans(data.loans || []);
+            // De-duplicate loans for display
+            const seen = new Set();
+            const uniqueLoans = (data.loans || []).filter(loan => {
+                // Create a unique key for the loan
+                // If EMI is null, use principal as fallback for uniqueness
+                const key = `${loan.lender_name}-${loan.loan_type}-${loan.emi_amount}-${loan.principal_amount}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            setDetectedLoans(uniqueLoans);
 
             // Auto-fill first loan if available
-            if (data.loans && data.loans.length > 0) {
-                const loan = data.loans[0];
+            if (uniqueLoans.length > 0) {
+                const loan = uniqueLoans[0];
                 setCalcData({
                     principal: loan.outstanding_balance || loan.principal_amount || '',
                     rate: loan.interest_rate || '',
