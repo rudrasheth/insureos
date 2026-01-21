@@ -148,8 +148,8 @@ Respond with JSON:
     return {
       status: "success",
       persona,
-      reasoning: `Generated from ${emails.length} insurance emails`,
-      sources: emails.map((e: any) => ({
+      reasoning: `Generated from ${relevantEmails.length} insurance emails`,
+      sources: relevantEmails.map((e: any) => ({
         subject: e.subject,
         sender: e.sender,
         date: e.received_at
