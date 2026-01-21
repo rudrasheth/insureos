@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS emails (
     gmail_message_id TEXT UNIQUE NOT NULL,
     sender TEXT NOT NULL,
     subject TEXT NOT NULL,
+    body TEXT, -- Full email body content
     raw_snippet TEXT,
     is_spam BOOLEAN DEFAULT FALSE,
     is_insurance_related BOOLEAN DEFAULT FALSE,
