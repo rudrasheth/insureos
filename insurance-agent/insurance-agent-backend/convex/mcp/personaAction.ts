@@ -109,6 +109,11 @@ Respond with JSON:
       status: "success",
       persona,
       reasoning: `Generated from ${emails.length} insurance emails`,
+      sources: emails.map((e: any) => ({
+        subject: e.subject,
+        sender: e.sender,
+        date: e.received_at
+      })),
     };
   }
 );

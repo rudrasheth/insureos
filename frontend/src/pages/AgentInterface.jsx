@@ -72,12 +72,16 @@ const AgentInterface = () => {
 
                     // 2. Generate Persona
                     const personaResult = await callConvexHttp('/mcp/persona');
-                    const { persona } = personaResult;
+                    const { persona, sources } = personaResult;
 
-                    const summary = `Analysis Done: based on ${personaResult.reasoning || 'your emails'}.
+                    let summary = `Analysis Done: based on ${personaResult.reasoning || 'your emails'}.
                     Risk Profile: ${persona.risk_profile}
                     Key Concerns: ${persona.key_concerns?.join(", ") || 'None detected'}
                     Est. Premium: ${persona.estimated_annual_premium || 'Unknown'}`;
+
+                    if (sources && sources.length > 0) {
+                        summary += `\n\nVerified Sources:\n${sources.map(s => `• ${s.subject} (${new Date(s.date).toLocaleDateString()})`).join('\n')}`;
+                    }
 
                     setMessages(prev => [...prev, {
                         id: Date.now() + 2,
