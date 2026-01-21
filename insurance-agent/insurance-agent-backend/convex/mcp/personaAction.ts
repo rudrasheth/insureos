@@ -56,6 +56,8 @@ export const personaGeneratorAction = internalAction(
         subject.includes("receipt") ||
         subject.includes("statement") ||
         subject.includes("schedule") ||
+        subject.includes("loan") || // Added loan
+        subject.includes("insurance") || // Added insurance
         subject.includes("cover");
 
       const isGeneric =
@@ -68,10 +70,8 @@ export const personaGeneratorAction = internalAction(
         subject.includes("alert") ||
         subject.includes("security");
 
-      // We want important emails, OR emails that are not generic noise
-      // (If it's not explicitly important but also not generic, key assumption is allow it but deprioritize? 
-      //  Actually, safer to strict filter for Persona to avoid noise).
-      return !isGeneric; // Simple exclusion is safer than strict inclusion which might miss edge cases
+      // STRICT Filtering: Must be Important AND Not Generic
+      return isImportant && !isGeneric;
     });
 
     // Build context from filtered emails
