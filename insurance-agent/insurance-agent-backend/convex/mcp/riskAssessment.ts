@@ -54,7 +54,30 @@ export const riskAssessmentAction = internalAction({
       e.subject.toLowerCase().includes("claim")
     );
 
-    const emailContext = emails
+    // Strict Filter for Analysis
+    const relevantEmails = emails.filter((e: any) => {
+      const subject = (e.subject || "").toLowerCase();
+      const isImportant =
+        subject.includes("policy") ||
+        subject.includes("premium") ||
+        subject.includes("renewal") ||
+        subject.includes("receipt") ||
+        subject.includes("statement") ||
+        subject.includes("schedule") ||
+        subject.includes("loan") ||
+        subject.includes("insurance") ||
+        subject.includes("cover");
+
+      const isGeneric =
+        subject.includes("tips") ||
+        subject.includes("newsletter") ||
+        subject.includes("stay safe") ||
+        subject.includes("guide");
+
+      return isImportant && !isGeneric;
+    });
+
+    const emailContext = relevantEmails
       .map(
         (e: any) =>
           `Category: ${e.category}, Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`

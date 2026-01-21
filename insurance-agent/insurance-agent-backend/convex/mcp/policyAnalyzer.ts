@@ -53,7 +53,29 @@ export const policyAnalyzerAction = internalAction({
       };
     }
 
-    const emailSummary = emails
+    // Strict Filter
+    const relevantEmails = emails.filter((e: any) => {
+      const subject = (e.subject || "").toLowerCase();
+      const isImportant =
+        subject.includes("policy") ||
+        subject.includes("premium") ||
+        subject.includes("renewal") ||
+        subject.includes("receipt") ||
+        subject.includes("statement") ||
+        subject.includes("schedule") ||
+        subject.includes("loan") ||
+        subject.includes("insurance") ||
+        subject.includes("cover");
+
+      const isGeneric =
+        subject.includes("tips") ||
+        subject.includes("newsletter") ||
+        subject.includes("guide");
+
+      return isImportant && !isGeneric;
+    });
+
+    const emailSummary = relevantEmails
       .map((e: any) => `Date: ${e.received_at}\nSubject: ${e.subject}\nBody: ${e.body || ''}\nContent: ${e.raw_snippet}`)
       .join("\n---\n");
 
