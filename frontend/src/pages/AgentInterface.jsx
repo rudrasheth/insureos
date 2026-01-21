@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, Loader2, Mail, ShieldAlert, BarChart3, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useMutation, useAction } from "convex/react";
-import { api } from "../convex-api";
+
 
 const AgentInterface = () => {
     const [messages, setMessages] = useState([
@@ -12,10 +11,28 @@ const AgentInterface = () => {
     const [loading, setLoading] = useState(false);
     const scrollRef = useRef(null);
 
-    // Convex Mutations (Using the backend we just set up)
-    // Note: These hook calls will only work once the ConvexProvider is wrapped in App.jsx
-    // For now, we stub them to not crash the build if not yet wrapped, but implementation assumes wrapper exists.
-    const sendMessage = useAction(api.mcp.chat.chat) || (() => Promise.resolve({ reply: "AI Connection Pending..." }));
+    // Helper to call Convex HTTP Actions
+    const callConvexHttp = async (endpoint, body = {}) => {
+        const convexUrl = import.meta.env.VITE_CONVEX_URL || "";
+        const baseUrl = convexUrl.replace(".cloud", ".site"); // Ensure we hit the HTTP actions
+        const token = localStorage.getItem('agent_session_token');
+
+        const response = await fetch(`${baseUrl}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Error ${response.status}: ${errorText}`);
+        }
+
+        return response.json();
+    };
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -25,7 +42,6 @@ const AgentInterface = () => {
         // Handle OAuth callback
         const params = new URLSearchParams(window.location.search);
         if (params.get('sync') === 'success') {
-            // Save token if present
             const token = params.get('auth_token');
             if (token) {
                 localStorage.setItem('agent_session_token', token);
@@ -34,24 +50,55 @@ const AgentInterface = () => {
             setMessages(prev => [...prev, {
                 id: Date.now(),
                 role: 'agent',
-                content: "✅ Sync Complete! I've securely connected to your Gmail. I'm now analyzing your recent insurance emails to build your persona...",
+                content: "✅ Sync Complete! I've securely connected to your Gmail. Now scanning your emails to build your profile...",
                 type: 'success'
             }]);
 
             // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
 
-            // Fetch formatted results (Simulated final part, or could call a real query here)
-            setTimeout(() => {
-                setMessages(prev => [...prev, {
-                    id: Date.now() + 1,
-                    role: 'agent',
-                    content: "Analysis Done: I found 2 policy documents from HDFC Life and ICICI Lombard. Your estimated annual premium is ₹45,000.",
-                    type: 'success'
-                }]);
-            }, 2000);
+            // Trigger Real Sync and Analysis
+            const syncAndAnalyze = async () => {
+                try {
+                    // 1. Trigger Gmail Sync
+                    await callConvexHttp('/gmail/sync');
+
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 1,
+                        role: 'agent',
+                        content: "Emails synced. Generating your insurance persona...",
+                        type: 'text'
+                    }]);
+
+                    // 2. Generate Persona
+                    const personaResult = await callConvexHttp('/mcp/persona');
+                    const { persona } = personaResult;
+
+                    const summary = `Analysis Done: based on ${personaResult.reasoning || 'your emails'}.
+                    Risk Profile: ${persona.risk_profile}
+                    Key Concerns: ${persona.key_concerns?.join(", ") || 'None detected'}
+                    Est. Premium: ${persona.estimated_annual_premium || 'Unknown'}`;
+
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 2,
+                        role: 'agent',
+                        content: summary,
+                        type: 'success'
+                    }]);
+                } catch (error) {
+                    console.error("Analysis Failed:", error);
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 3,
+                        role: 'agent',
+                        content: `Analysis failed: ${error.message}. Please try syncing again.`,
+                        type: 'error'
+                    }]);
+                }
+            };
+
+            syncAndAnalyze();
         }
-    }, [messages]);
+    }, []);
 
     const handleSync = () => {
         setMessages(prev => [...prev, {
@@ -62,13 +109,10 @@ const AgentInterface = () => {
         }]);
 
         setTimeout(() => {
-            // Redirect to Convex HTTP Action for Google Auth
-            // Using .site domain for HTTP actions in production
             const convexUrl = import.meta.env.VITE_CONVEX_URL || "";
             const authUrl = convexUrl.includes("convex.cloud")
                 ? convexUrl.replace("convex.cloud", "convex.site") + "/auth/google"
-                : "https://third-fly-393.convex.site/auth/google"; // Fallback to known site URL
-
+                : "https://third-fly-393.convex.site/auth/google";
             window.location.href = authUrl;
         }, 1000);
     };
@@ -83,16 +127,16 @@ const AgentInterface = () => {
         setLoading(true);
 
         try {
-            // Call Convex Backend
-            const response = await sendMessage({
+            // Call Convex HTTP Endpoint for Chat
+            const response = await callConvexHttp('/mcp/chat', {
                 message: input,
-                user_id: "demo-user-123" // In production, get this from auth context
+                history: messages.map(m => ({ role: m.role, content: m.content }))
             });
 
             const agentMsg = {
                 id: Date.now() + 1,
                 role: 'agent',
-                content: response.reply || "I processed that request.",
+                content: response.agent_response || JSON.stringify(response),
                 type: 'text'
             };
             setMessages(prev => [...prev, agentMsg]);
@@ -101,7 +145,7 @@ const AgentInterface = () => {
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'agent',
-                content: "I'm having trouble connecting to my cognitive engine right now. Please check my configuration.",
+                content: "I'm having trouble connecting to my cognitive engine right now. Please ensure you have synced your email first.",
                 type: 'error'
             }]);
         } finally {
