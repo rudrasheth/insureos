@@ -431,6 +431,44 @@ http.route({
   handler: register,
 });
 
+const getMeHandler = httpAction(async (ctx, request) => {
+  const userId = await validateSessionAndGetUserId(ctx, request);
+  const SUPABASE_URL = process.env.SUPABASE_URL!;
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const supabase = (await import("./utils/supabase")).getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const { data: user, error } = await supabase.from("users").select("*").eq("id", userId).single();
+  if (error || !user) {
+    return new Response("User not found", { status: 404 });
+  }
+
+  return new Response(JSON.stringify(user), {
+    status: 200,
+    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+  });
+});
+
+http.route({
+  path: "/me",
+  method: "GET",
+  handler: getMeHandler,
+});
+
+http.route({
+  path: "/me",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }),
+});
+
 http.route({
   path: "/auth/google",
   method: "GET",
@@ -449,26 +487,7 @@ http.route({
   handler: validateSession,
 });
 
-http.route({
-  path: "/me",
-  method: "GET",
-  handler: getMe,
-});
 
-http.route({
-  path: "/me",
-  method: "OPTIONS",
-  handler: httpAction(async () => {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
-  }),
-});
 
 // Gmail endpoints
 http.route({
