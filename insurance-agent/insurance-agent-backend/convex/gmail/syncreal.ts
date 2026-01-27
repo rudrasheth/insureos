@@ -1,11 +1,12 @@
 import { httpAction } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { getSupabaseClient } from "../utils/supabase";
 import { classifyEmail } from "../utils/emailFilter";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("Missing required Supabase environment variables");
@@ -18,8 +19,8 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
 
 const GMAIL_API_BASE = "https://www.googleapis.com/gmail/v1/users/me";
 const MAX_RESULTS_PER_PAGE = 100;
-// 10 days lookback
-const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
+// 30 days lookback to ensuring we catch recent emails even if previously synced
+const TEN_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 interface GmailListResponse {
   messages?: { id: string; threadId: string }[];
@@ -33,6 +34,9 @@ interface GmailMessage {
   internalDate?: string;
   payload?: {
     headers?: { name: string; value: string }[];
+    body?: { data?: string };
+    parts?: any[];
+    mimeType?: string;
   };
 }
 
@@ -42,55 +46,59 @@ function getHeader(headers: { name: string; value: string }[] | undefined, name:
   return h?.value;
 }
 
+// Helper to decode Base64 (URL Safe)
+function decodeBase64(data: string): string {
+  try {
+    const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+    // atob is available in Convex runtime
+    const decoded = atob(base64);
+
+    // Fix UTF-8 encoding issues (common with atob)
+    const bytes = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i++) {
+      bytes[i] = decoded.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  } catch (e) {
+    console.warn("[Gmail] Base64 decode failed:", e);
+    return "";
+  }
+}
+
 /**
- * Extract email body from Gmail API payload
+ * Extract email body from Gmail API payload - Aggressive "Vacuum" Strategy
  */
 function getEmailBody(payload: any): string {
   if (!payload) return "";
+  let bodyParts: string[] = [];
 
-  // Try to get body from single part
-  if (payload.body?.data) {
-    try {
-      return Buffer.from(payload.body.data, 'base64').toString('utf-8');
-    } catch (e) {
-      console.warn("[Gmail] Failed to decode body.data:", e);
-    }
-  }
-
-  // Try to get body from multipart
-  if (payload.parts && Array.isArray(payload.parts)) {
-    for (const part of payload.parts) {
-      // Prefer text/plain
-      if (part.mimeType === 'text/plain' && part.body?.data) {
+  // Recursive function to capture ALL text
+  const traverse = (p: any) => {
+    if (p.body?.data) {
+      if (p.mimeType === 'text/plain' || p.mimeType === 'text/html') {
         try {
-          return Buffer.from(part.body.data, 'base64').toString('utf-8');
+          const text = decodeBase64(p.body.data);
+          if (text.trim().length > 0) {
+            bodyParts.push(text);
+          }
         } catch (e) {
-          console.warn("[Gmail] Failed to decode part body:", e);
+          console.warn("[Gmail] Failed to decode body part:", e);
         }
       }
     }
 
-    // Fallback to text/html
-    for (const part of payload.parts) {
-      if (part.mimeType === 'text/html' && part.body?.data) {
-        try {
-          return Buffer.from(part.body.data, 'base64').toString('utf-8');
-        } catch (e) {
-          console.warn("[Gmail] Failed to decode HTML part:", e);
-        }
+    if (p.parts && Array.isArray(p.parts)) {
+      for (const part of p.parts) {
+        traverse(part);
       }
     }
+  };
 
-    // Recursive check for nested parts
-    for (const part of payload.parts) {
-      if (part.parts) {
-        const nestedBody = getEmailBody(part);
-        if (nestedBody) return nestedBody;
-      }
-    }
-  }
+  traverse(payload);
 
-  return "";
+  // Join all parts, prefer text/plain if we can distinguish, but for now just concat
+  // To avoid HTML mess, we might want to strip tags if it's HTML, but raw HTML is better than nothing for AI
+  return bodyParts.join("\n\n---\n\n");
 }
 
 /**
@@ -491,10 +499,22 @@ export const gmailSyncReal = httpAction(async (_ctx: any, request: Request) => {
     // Refresh token if needed
     const accessToken = await refreshAccessTokenIfNeeded(userId, provider);
 
+
+
     // Fetch ALL emails with pagination
     const result = await fetchAllGmailMessages(accessToken, userId);
 
     console.log(`[Gmail] Sync complete: ${result.totalFetched} fetched, ${result.totalInserted} inserted`);
+
+    // Trigger Persona Generation Analysis automatically
+    try {
+      console.log(`[Gmail] Triggering Persona Analysis for user ${userId}...`);
+      await _ctx.runAction(internal.mcp.personaAction.personaGeneratorAction, { userId });
+      console.log(`[Gmail] Persona Analysis triggered successfully.`);
+    } catch (err) {
+      console.error(`[Gmail] Failed to trigger Persona Analysis:`, err);
+      // Don't fail the sync request just because persona failed
+    }
 
     return new Response(
       JSON.stringify({

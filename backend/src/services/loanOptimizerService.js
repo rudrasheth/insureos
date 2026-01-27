@@ -13,7 +13,16 @@ class LoanOptimizerService {
         // R = annual rate / 12 / 100
 
         const r = rate / 12 / 100;
-        const emi = (principal * r * Math.pow(1 + r, tenureMonths)) / (Math.pow(1 + r, tenureMonths) - 1);
+        let emi;
+        if (r === 0) {
+            emi = principal / tenureMonths;
+        } else {
+            emi = (principal * r * Math.pow(1 + r, tenureMonths)) / (Math.pow(1 + r, tenureMonths) - 1);
+        }
+
+        if (!isFinite(emi) || isNaN(emi)) {
+            throw new Error("Invalid calculation input");
+        }
         const totalAmount = emi * tenureMonths;
         const totalInterest = totalAmount - principal;
 

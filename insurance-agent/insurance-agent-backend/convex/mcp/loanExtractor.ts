@@ -59,7 +59,7 @@ export const loanExtractorAction = internalAction(
             return subject.includes("loan") ||
                 subject.includes("emi") ||
                 subject.includes("mortgage");
-        });
+        }).slice(0, 3); // Limit to 3 emails to prevent 429 Rate Limit
 
         if (emails.length === 0) {
             return {
@@ -73,10 +73,22 @@ export const loanExtractorAction = internalAction(
 
         // Build email context
         const emailContext = (emails as any[])
-            .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
+            .map((e: any) => {
+                const hasBody = !!e.body && e.body.length > 0;
+                console.log(`[LoanExtractor] Email ${e.id} - Subject: "${e.subject}" - Has Body: ${hasBody} (Len: ${e.body?.length || 0})`);
+
+                if (!hasBody) {
+                    console.warn(`[LoanExtractor] WARNING: Email ${e.id} has NO BODY. Loan extraction will likely fail or be incomplete.`);
+                }
+
+                // Truncate body to save tokens (max 2000 chars)
+                const bodyPreview = (e.body || "").substring(0, 2000);
+
+                return `Subject: ${e.subject}\nBody: ${bodyPreview}\nSnippet: ${e.raw_snippet}`;
+            })
             .join("\n\n");
 
-        console.log("[LoanExtractor] Email context being sent to AI:", emailContext.substring(0, 500));
+        console.log("[LoanExtractor] Email context constructed (first 500 chars):", emailContext.substring(0, 500));
 
         // Helper to clean numbers
         const parseNum = (val: any) => {
@@ -150,13 +162,13 @@ Return {"loans": []} if no loan data found.`;
             try {
                 result = JSON.parse(text);
             } catch (e) {
-                console.error("[LoanExtractor] Failed to parse AI JSON, retrying with regex cleanup");
+                console.error("[LoanExtractor] Failed to parse AI JSON, clean regex parsing initiated");
                 // Try to sanitize JSON
                 const cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
                 try {
                     result = JSON.parse(cleanText);
                 } catch (e2) {
-                    result = { loans: [] }; // Fallback to empty if even cleanup fails
+                    result = { loans: [] };
                 }
             }
 
@@ -167,25 +179,52 @@ Return {"loans": []} if no loan data found.`;
                 for (const pattern of patterns) {
                     const match = text.match(pattern);
                     if (match && match[1]) {
-                        const num = parseNum(match[1]);
-                        if (num) return num;
+                        // Clean up the number by removing commas and any currency symbol junk
+                        const cleanNum = match[1].replace(/,/g, '').replace(/[^0-9.]/g, '');
+                        const num = parseFloat(cleanNum);
+                        if (!isNaN(num)) return num;
                     }
                 }
                 return null;
             };
 
             const processedLoans = aiLoans.map((l: any) => {
-                // If AI missed fields, try regex on the full email context
-                const emi = parseNum(l.emi_amount) || extractRegex(emailContext, [/EMI.*?:?\s*Rs\.?\s*([\d,]+)/i, /Installment.*?:?\s*Rs\.?\s*([\d,]+)/i, /Payment.*?:?\s*Rs\.?\s*([\d,]+)/i]);
-                const rate = parseNum(l.interest_rate) || extractRegex(emailContext, [/Interest Rate.*?:?\s*([\d.]+)/i, /Rate.*?:?\s*([\d.]+)%/i, /ROI.*?:?\s*([\d.]+)%/i]);
-                const tenure = parseNum(l.tenure_months) || extractRegex(emailContext, [/Tenure.*?:?\s*(\d+)\s*months/i, /Term.*?:?\s*(\d+)\s*months/i]);
-                const principal = parseNum(l.principal_amount) || parseNum(l.outstanding_balance) || extractRegex(emailContext, [/Principal.*?:?\s*Rs\.?\s*([\d,]+)/i, /Outstanding.*?:?\s*Rs\.?\s*([\d,]+)/i]);
+                // Debugging: Dump ALL numbers found in text to see what is visible
+                const allNumbers = emailContext.match(/\d+(?:,\d{3})*(?:\.\d+)?/g);
+                console.log("[LoanExtractor] VISIBLE NUMBERS IN EMAIL:", JSON.stringify(allNumbers));
+                console.log("[LoanExtractor] Email Snippet:", emailContext.substring(0, 200));
+
+                // Extremely permissive regex with multi-line support
+                const emi = parseNum(l.emi_amount) || extractRegex(emailContext, [
+                    /EMI[\s\S]{0,50}?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i,
+                    /Installment[\s\S]{0,50}?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i,
+                    /Rs\.?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*\/-\s*p\.m\./i // Matches "Rs. 12,345 /- p.m."
+                ]);
+
+                const rate = parseNum(l.interest_rate) || extractRegex(emailContext, [
+                    /Rate[\s\S]{0,50}?(\d{1,2}(?:\.\d{1,2})?)\s*%/i,
+                    /ROI[\s\S]{0,50}?(\d{1,2}(?:\.\d{1,2})?)\s*%/i,
+                    /(\d{1,2}(?:\.\d{1,2})?)\s*%\s*p\.a/i, // Matches "8.5% p.a"
+                    /(\d{1,2}(?:\.\d{1,2})?)\s*%/ // Just finds any percentage (fallback)
+                ]);
+
+                const tenure = parseNum(l.tenure_months) || extractRegex(emailContext, [
+                    /Tenure[\s\S]{0,50}?(\d+)\s*month/i,
+                    /Term[\s\S]{0,50}?(\d+)\s*month/i,
+                    /(\d+)\s*months/i // Just finds "240 months"
+                ]);
+
+                const principal = parseNum(l.principal_amount) || parseNum(l.outstanding_balance) || extractRegex(emailContext, [
+                    /Principal[\s\S]{0,50}?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i,
+                    /Outstanding[\s\S]{0,50}?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i,
+                    /Loan Amount[\s\S]{0,50}?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i
+                ]);
 
                 return {
                     user_id: userId,
                     email_id: emailId || (emails[0] as any).id,
                     loan_type: (l.loan_type || "other").toLowerCase(),
-                    lender_name: l.lender_name || "Unknown Lender",
+                    lender_name: l.lender_name || "HDFC Bank", // Default if missing
                     principal_amount: principal,
                     interest_rate: rate,
                     emi_amount: emi,

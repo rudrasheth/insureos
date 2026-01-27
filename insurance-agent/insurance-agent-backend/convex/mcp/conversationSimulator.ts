@@ -38,25 +38,26 @@ export const conversationSimulatorAction = internalAction({
 
     const persona = personaData?.persona_data || null;
 
-    // Fetch ALL user insurance data for context
+    // Fetch user insurance data - OPTIMIZED to prevent Rate Limits
     const { data: emails, error: emailError } = await supabase
       .from("emails")
-      .select("*")
+      .select("subject, body, sender, raw_snippet, received_at") // Select only needed fields
       .eq("user_id", userId)
       .eq("is_insurance_related", true)
-      .order("received_at", { ascending: false });
+      .order("received_at", { ascending: false })
+      .limit(3); // STRICT LIMIT: Top 3 emails only
 
     if (emailError) {
       throw new Error(`Failed to fetch user context: ${emailError.message}`);
     }
 
-    // Fetch saved chat history from database (last 20 messages for context)
+    // Fetch saved chat history from database (last 6 messages for context)
     const { data: savedHistory } = await supabase
       .from("chat_history")
       .select("role, content, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(6); // Reduce history to 6
 
     // Combine saved history with current conversation (reverse to chronological order)
     const dbHistory = (savedHistory || [])
@@ -65,33 +66,14 @@ export const conversationSimulatorAction = internalAction({
 
     const fullHistory = [...dbHistory, ...(conversationHistory || [])];
 
-    // Filter emails to prioritize policies/premiums and exclude generic tips
-    const relevantEmails = emails?.filter((e: any) => {
-      const subject = (e.subject || "").toLowerCase();
-      const isImportant =
-        subject.includes("policy") ||
-        subject.includes("premium") ||
-        subject.includes("renewal") ||
-        subject.includes("receipt") ||
-        subject.includes("statement") ||
-        subject.includes("schedule") ||
-        subject.includes("cover");
-
-      const isGeneric =
-        subject.includes("tips") ||
-        subject.includes("newsletter") ||
-        subject.includes("stay safe") ||
-        subject.includes("guide") ||
-        subject.includes("fraud") ||
-        subject.includes("cyber") ||
-        subject.includes("alert") ||
-        subject.includes("security");
-
-      return isImportant && !isGeneric;
-    });
+    const relevantEmails = emails || [];
 
     const userContext = relevantEmails
-      ?.map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
+      .map((e: any) => {
+        // Truncate body strongly (1000 chars)
+        const bodyPreview = (e.body || "").substring(0, 1000);
+        return `Subject: ${e.subject}\nBody: ${bodyPreview}\nSnippet: ${e.raw_snippet}`;
+      })
       .join("\n\n") || "No specific policy documents found.";
 
     const conversationContext =
@@ -103,33 +85,27 @@ export const conversationSimulatorAction = internalAction({
       ? `\n\nUser Profile:\n- Risk Profile: ${persona.risk_profile}\n- Key Concerns: ${persona.key_concerns?.join(", ")}\n- Insurance Types: ${persona.insurance_types?.join(", ")}`
       : "";
 
-    const prompt = `You are a helpful insurance agent assistant. Respond to the user's message with empathy and expertise.
+    const systemPrompt = `You are InsureOS, an intelligent insurance assistant. 
+    Use the provided user context (emails, persona) to answer questions accurately.
+
+    User Persona: ${JSON.stringify(persona)}
     
-CRITICAL INSTRUCTION: 
-1. Focus ONLY on the user's actual insurance policies, premiums, and coverage details found in the "User's Insurance Context". 
-2. DO NOT mention generic emails, safety tips, fraud alerts, or newsletters. 
-3. If an email seems to be about "cyber safety" or "fraud prevention", IGNORE IT completely. It is NOT a policy.
-4. If the user asks about policies, list ONLY the policies (e.g. Mediclaim, Life Insurance) and their amounts.
+    Relevant Policy Documents:
+    ${userContext}
 
-User's Insurance Context (Real Policies):
-${userContext}${personaContext}
-
-Conversation History:
-${conversationContext}
-
-Current User Message: "${userMessage}"
-
-Respond ONLY with valid JSON in this exact format:
-{
-  "agent_response": "string",
-  "suggested_actions": ["action1", "action2"],
-  "sentiment_detected": "neutral",
-  "requires_escalation": false,
-  "confidence_score": 0.8
-}`;
+    Conversation History:
+    ${conversationContext}
+    
+    Guidelines:
+    - Be helpful, professional, and concise.
+    - If specific policy details are missing, say so politely.
+    - Provide financial advice based on the persona's risk profile.
+    - CRITICAL: Do NOT list "Loans" or "Debts" as Insurance Policies. If the user asks for "Policies", "Insurance", or "Coverage", ONLY mention Insurance products (Health, Life, Car, etc.). Ignore Home Loans, Personal Loans, etc. unless explicitly asked about debt.
+    - Output strictly valid JSON.
+    `;
 
     try {
-      // Call Groq API
+      // Call Groq API (Switch to Llama 3 8B for speed and rate limits)
       const res = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
         {
@@ -139,42 +115,51 @@ Respond ONLY with valid JSON in this exact format:
             "Authorization": `Bearer ${GROQ_API_KEY}`
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model: "llama-3.1-8b-instant", // Use 8b-instant for Chat (Faster, Higher Limits)
             messages: [
-              { role: "system", content: "You are a helpful insurance agent assistant. Output strictly valid JSON." },
-              { role: "user", content: prompt }
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userMessage }
             ],
             response_format: { type: "json_object" },
-            temperature: 0.5
+            temperature: 0.7,
+            max_tokens: 800
           }),
         }
       );
 
       if (!res.ok) {
-        const errorBody = await res.text();
-        throw new Error(`Groq API error: ${res.status} - ${errorBody}`);
+        const errorText = await res.text();
+        throw new Error(`Groq API error: ${res.status} - ${errorText}`);
       }
 
-      const data = (await res.json()) as any;
-      const text = data.choices[0].message.content || "{}";
-      const result = JSON.parse(text);
+      const data = await res.json();
+      const content = data.choices[0].message.content;
 
-      const agentResponse = result.agent_response || "I'm here to help with your insurance questions.";
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(content);
+      } catch (e) {
+        // Fallback if not JSON
+        parsedResponse = {
+          agent_response: content,
+          suggested_actions: [],
+          sentiment_detected: "neutral",
+          requires_escalation: false,
+          confidence_score: 0.5
+        };
+      }
 
-      // Async save chat history (fire and forget pattern for speed, or await if strict)
-      await Promise.all([
-        supabase.from("chat_history").insert({ user_id: userId, role: "user", content: userMessage }),
-        supabase.from("chat_history").insert({ user_id: userId, role: "agent", content: agentResponse })
+      // Save new message to history
+      await supabase.from("chat_history").insert([
+        { user_id: userId, role: "user", content: userMessage },
+        { user_id: userId, role: "assistant", content: parsedResponse.agent_response }
       ]);
 
-      return {
-        status: "success",
-        agent_response: result.agent_response || "I'm here to help with your insurance questions.",
-        suggested_actions: result.suggested_actions || [],
-        sentiment: result.sentiment_detected || "neutral",
-      };
+      return parsedResponse;
+
     } catch (error) {
-      throw new Error(`Conversation simulation failed: ${String(error)}`);
+      console.error("Conversation simulation failed:", error);
+      throw error;
     }
-  },
+  }
 });

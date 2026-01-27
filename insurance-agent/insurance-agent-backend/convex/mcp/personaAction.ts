@@ -21,44 +21,30 @@ export const personaGeneratorAction = internalAction(
 
     const supabase = getSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch ALL insurance emails from Supabase
-    const { data: emails, error } = await supabase
+    // Fetch recent emails
+    const { data: emails } = await supabase
       .from("emails")
-      .select("*")
+      .select("subject, body, sender, received_at, is_insurance_related")
       .eq("user_id", userId)
-      .eq("is_insurance_related", true)
-      .order("received_at", { ascending: false });
+      .order("received_at", { ascending: false })
+      .limit(50); // Analyze last 50 emails
 
-    if (error) {
-      throw new Error(`Failed to fetch emails: ${error.message}`);
-    }
+    // Fetch extracted loans - Include loan data in Persona
+    const { data: loans } = await supabase
+      .from("loans")
+      .select("*")
+      .eq("user_id", userId);
 
-    if (!emails || emails.length === 0) {
-      return {
-        status: "success",
-        persona: {
-          profile_name: "New User",
-          insurance_types: [],
-          risk_profile: "unknown",
-          engagement_level: "low",
-        },
-        reasoning: "No insurance emails found. User is new or inactive.",
-      };
-    }
-
-    // Filter emails to prioritize policies/premiums and exclude generic tips
-    const relevantEmails = (emails as any[]).filter((e: any) => {
+    // Filter for important emails
+    const importantEmails = (emails || []).filter((e: any) => {
       const subject = (e.subject || "").toLowerCase();
+      const sender = (e.sender || "").toLowerCase();
+
+      const keywords = ["insurance", "policy", "premium", "coverage", "renewal", "life", "health", "term", "vehicle", "car", "bike"];
+
       const isImportant =
-        subject.includes("policy") ||
-        subject.includes("premium") ||
-        subject.includes("renewal") ||
-        subject.includes("receipt") ||
-        subject.includes("statement") ||
-        subject.includes("schedule") ||
-        subject.includes("insurance") ||
-        subject.includes("payment") ||
-        subject.includes("cover");
+        e.is_insurance_related ||
+        keywords.some(k => subject.includes(k) || sender.includes(k));
 
       const isGeneric =
         subject.includes("tips") ||
@@ -69,7 +55,7 @@ export const personaGeneratorAction = internalAction(
         subject.includes("cyber") ||
         subject.includes("alert") ||
         subject.includes("security") ||
-        subject.includes("credit for") || // Exclude "Premium Requests credit"
+        subject.includes("credit for") ||
         subject.includes("subscription") ||
         subject.includes("verify") ||
         subject.includes("onboarding");
@@ -78,11 +64,31 @@ export const personaGeneratorAction = internalAction(
       return isImportant && !isGeneric;
     });
 
-    // Build context from filtered emails
-    const emailSummary = relevantEmails
-      .map((e: any) => `Subject: ${e.subject}\nBody: ${e.body || ''}\nSnippet: ${e.raw_snippet}`)
-      .join("\n\n");
+    const hasLoans = loans && loans.length > 0;
 
+    if (importantEmails.length === 0 && !hasLoans) {
+      console.log("No important emails OR loans found for persona generation.");
+      return { message: "No relevant data", persona: null };
+    }
+
+    // Construct Context
+    let promptContext = "Here is the user's data from emails and loan statements:\n\n";
+
+    if (importantEmails.length > 0) {
+      promptContext += "--- RECENT INSURANCE EMAILS ---\n";
+      promptContext += importantEmails.map((e: any) =>
+        `- Date: ${e.received_at}\n  From: ${e.sender}\n  Subject: ${e.subject}\n  Snippet: ${(e.body || "").substring(0, 300)}...`
+      ).join("\n\n");
+      promptContext += "\n\n";
+    }
+
+    if (hasLoans) {
+      promptContext += "--- EXTRACTED LOAN/DEBT DATA ---\n";
+      promptContext += loans.map((l: any) =>
+        `- Lender: ${l.lender_name}\n  Type: ${l.loan_type}\n  Principal: ${l.principal_amount}\n  Outstanding: ${l.outstanding_balance}\n  EMI: ${l.emi_amount}\n  Rate: ${l.interest_rate}%`
+      ).join("\n\n");
+      promptContext += "\n\n";
+    }
 
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -90,22 +96,25 @@ export const personaGeneratorAction = internalAction(
       throw new Error("Groq API key not configured");
     }
 
-    const prompt = `Analyze this user's insurance email history and generate a detailed financial persona.
+    const prompt = `Analyze this user's insurance and financial history and generate a detailed financial persona.
     
-    Email History:
-    ${emailSummary}
+    Data:
+    ${promptContext}
     
     Respond with JSON:
     {
-      "profile_name": "string (e.g., 'Under-insured Parent', 'Well-covered Professional')",
+      "profile_name": "string (e.g., 'Under-insured Parent', 'Debt-Heavy Professional')",
       "insurance_types": ["list of inferred insurance types"],
       "has_life_insurance": boolean,
       "has_health_insurance": boolean,
+      "has_loans": boolean,
       "total_life_coverage": number (Sum Assured in currency, estimate if needed, 0 if none),
       "total_health_coverage": number (Sum Assured in currency, estimate if needed, 0 if none),
+      "total_debt": number (Total outstanding loans),
+      "monthly_emi_outflow": number (Total monthly EMI),
       "risk_profile": "conservative|moderate|aggressive",
-      "key_concerns": ["list of inferred concerns"],
-      "gap_analysis": "string (brief sentence on what is missing e.g. 'Low health cover')",
+      "key_concerns": ["list of inferred concerns e.g. 'High Debt', 'Low Cover'"],
+      "gap_analysis": "string (brief sentence on what is critical e.g. 'High debt with low life cover is risky')",
       "estimated_annual_premium": "number or null"
     }`;
 
@@ -121,7 +130,7 @@ export const personaGeneratorAction = internalAction(
         body: JSON.stringify({
           model: "llama-3.3-70b-versatile",
           messages: [
-            { role: "system", content: "You are an AI insurance analyst. Output strictly valid JSON." },
+            { role: "system", content: "You are an AI financial analyst. Output strictly valid JSON." },
             { role: "user", content: prompt }
           ],
           response_format: { type: "json_object" }, // Groq supports JSON mode
@@ -139,23 +148,39 @@ export const personaGeneratorAction = internalAction(
     const text = data.choices[0].message.content || "{}";
     const persona = JSON.parse(text);
 
-    // Persist Persona to Supabase (manual upsert since no unique constraint)
-    const { data: existing } = await supabase
+    // Persist Persona to Supabase
+    // Handle potential duplicates gracefully
+    const { data: existingRows, error: fetchError } = await supabase
       .from("personas")
       .select("id")
-      .eq("user_id", userId)
-      .single();
+      .eq("user_id", userId);
 
-    if (existing) {
-      // Update existing
+    if (fetchError) {
+      console.error("Failed to fetch existing persona:", fetchError);
+    }
+
+    if (existingRows && existingRows.length > 0) {
+      // Update the first one
+      const targetId = existingRows[0].id;
+
       const { error: updateError } = await supabase
         .from("personas")
         .update({ persona_data: persona, updated_at: new Date().toISOString() })
-        .eq("user_id", userId);
+        .eq("id", targetId);
 
       if (updateError) {
         console.error("Failed to update persona:", updateError);
+      } else {
+        console.log(`[Persona] Updated persona ${targetId}`);
       }
+
+      // Clean up duplicates if any
+      if (existingRows.length > 1) {
+        console.warn(`[Persona] Found ${existingRows.length} duplicates for user ${userId}. Cleaning up...`);
+        const idsToDelete = existingRows.slice(1).map((r: any) => r.id);
+        await supabase.from("personas").delete().in("id", idsToDelete);
+      }
+
     } else {
       // Insert new
       const { error: insertError } = await supabase
@@ -164,18 +189,27 @@ export const personaGeneratorAction = internalAction(
 
       if (insertError) {
         console.error("Failed to insert persona:", insertError);
+      } else {
+        console.log(`[Persona] Inserted new persona for user ${userId}`);
       }
     }
 
     return {
       status: "success",
       persona,
-      reasoning: `Generated from ${relevantEmails.length} insurance emails`,
-      sources: relevantEmails.map((e: any) => ({
-        subject: e.subject,
-        sender: e.sender,
-        date: e.received_at
-      })),
+      reasoning: `Generated from ${importantEmails.length} insurance emails and ${loans?.length || 0} loans`,
+      sources: {
+        emails: importantEmails.map((e: any) => ({
+          subject: e.subject,
+          sender: e.sender,
+          date: e.received_at
+        })),
+        loans: loans?.map((l: any) => ({
+          lender: l.lender_name,
+          type: l.loan_type,
+          outstanding: l.outstanding_balance
+        })) || []
+      }
     };
   }
 );

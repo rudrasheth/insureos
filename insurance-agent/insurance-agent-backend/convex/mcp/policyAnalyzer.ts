@@ -71,7 +71,12 @@ export const policyAnalyzerAction = internalAction({
         subject.includes("newsletter") ||
         subject.includes("guide") ||
         subject.includes("credit for") ||
-        subject.includes("subscription");
+        subject.includes("subscription") ||
+        subject.includes("loan") ||            // Exclude Loans
+        subject.includes("emi") ||             // Exclude EMIs
+        subject.includes("repayment") ||       // Exclude Repayments
+        subject.includes("mortgage") ||        // Exclude Mortgages
+        subject.includes("credit card");       // Exclude Credit Cards
 
       return isImportant && !isGeneric;
     });
