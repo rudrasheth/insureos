@@ -93,25 +93,41 @@ const LoanOptimizer = () => {
         }
     };
 
-    const handleCalculate = async (e) => {
+    const handleCalculate = (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const payload = {
-                principal: Number(calcData.principal),
-                rate: Number(calcData.rate),
-                tenureMonths: Number(calcData.tenureMonths)
+            const P = Number(calcData.principal);
+            const R = Number(calcData.rate) / 12 / 100;
+            const N = Number(calcData.tenureMonths);
+
+            let emi = 0;
+            if (R === 0) {
+                emi = P / N;
+            } else {
+                emi = (P * R * Math.pow(1 + R, N)) / (Math.pow(1 + R, N) - 1);
+            }
+
+            const totalAmount = emi * N;
+            const totalInterest = totalAmount - P;
+
+            const data = {
+                emi: Math.round(emi),
+                totalInterest: Math.round(totalInterest),
+                totalAmount: Math.round(totalAmount)
             };
-            const { data } = await calculateLoan(payload);
+
             setCalcResult(data);
-            // Autofill sim data from calc result for convenience
+
+            // Autofill sim data
             setSimData(prev => ({
                 ...prev,
                 principal: calcData.principal,
                 rate: calcData.rate,
                 tenureMonths: calcData.tenureMonths,
-                currentEmi: data.emi
+                currentEmi: Math.round(emi)
             }));
+            toast.success("Calculated successfully");
         } catch (error) {
             console.error(error);
             toast.error('Calculation Failed');
@@ -120,20 +136,62 @@ const LoanOptimizer = () => {
         }
     };
 
-    const handleSimulate = async (e) => {
+    const handleSimulate = (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const payload = {
-                principal: Number(simData.principal),
-                rate: Number(simData.rate),
-                tenureMonths: Number(simData.tenureMonths),
-                currentEmi: Number(simData.currentEmi),
-                prepaymentAmount: Number(simData.prepaymentAmount),
-                prepaymentFrequency: simData.prepaymentFrequency
+            const principal = Number(simData.principal);
+            const rate = Number(simData.rate);
+            const tenureMonths = Number(simData.tenureMonths);
+            const currentEmi = Number(simData.currentEmi);
+            const prepaymentAmount = Number(simData.prepaymentAmount);
+            const frequency = simData.prepaymentFrequency;
+
+            // Baseline Interest
+            const r = rate / 12 / 100;
+            const baselineEmi = (principal * r * Math.pow(1 + r, tenureMonths)) / (Math.pow(1 + r, tenureMonths) - 1);
+            const originalTotalInterest = (baselineEmi * tenureMonths) - principal;
+
+            // Simulation Loop
+            let balance = principal;
+            let monthsElapsed = 0;
+            let totalInterestPaid = 0;
+
+            while (balance > 0 && monthsElapsed < 1000) {
+                let interest = balance * r;
+                totalInterestPaid += interest;
+                let principalPaid = currentEmi - interest;
+
+                // Add Prepayment
+                if (prepaymentAmount > 0) {
+                    if (frequency === 'monthly') {
+                        principalPaid += prepaymentAmount;
+                    } else if (frequency === 'yearly' && monthsElapsed % 12 === 0 && monthsElapsed > 0) {
+                        principalPaid += prepaymentAmount;
+                    } else if (frequency === 'one-time' && monthsElapsed === 0) {
+                        principalPaid += prepaymentAmount;
+                    }
+                }
+
+                balance -= principalPaid;
+                monthsElapsed++;
+
+                if (balance < 0) {
+                    balance = 0;
+                }
+            }
+
+            const data = {
+                originalTenure: tenureMonths,
+                newTenure: monthsElapsed,
+                monthsSaved: Math.max(0, tenureMonths - monthsElapsed),
+                originalTotalInterest: Math.round(originalTotalInterest),
+                newTotalInterest: Math.round(totalInterestPaid),
+                interestSaved: Math.max(0, Math.round(originalTotalInterest - totalInterestPaid))
             };
-            const { data } = await simulatePrepayment(payload);
+
             setSimResult(data);
+            toast.success("Simulation complete");
         } catch (error) {
             console.error(error);
             toast.error('Simulation Failed');
