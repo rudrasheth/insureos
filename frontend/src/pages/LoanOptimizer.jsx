@@ -224,7 +224,26 @@ const LoanOptimizer = () => {
                         ✓ {detectedLoans.length} loan(s) detected from your emails
                     </p>
                     {detectedLoans.map((loan, idx) => (
-                        <div key={idx} className="p-3 bg-white rounded border border-green-100 text-xs">
+                        <div
+                            key={idx}
+                            onClick={() => {
+                                setCalcData({
+                                    principal: loan.outstanding_balance || loan.principal_amount || '',
+                                    rate: loan.interest_rate || '',
+                                    tenureMonths: loan.remaining_tenure_months || loan.tenure_months || ''
+                                });
+                                setSimData(prev => ({
+                                    ...prev,
+                                    principal: loan.outstanding_balance || loan.principal_amount || '',
+                                    rate: loan.interest_rate || '',
+                                    tenureMonths: loan.remaining_tenure_months || loan.tenure_months || '',
+                                    currentEmi: loan.emi_amount || ''
+                                }));
+                                toast.success(`Selected ${loan.lender_name} loan`);
+                            }}
+                            className="p-3 bg-white rounded border border-green-100 text-xs cursor-pointer hover:bg-green-50 hover:border-green-300 transition-all active:scale-[0.99]"
+                            title="Click to load detailed view"
+                        >
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <span className="font-bold text-ink-500">Lender:</span> {loan.lender_name || 'Unknown'}
